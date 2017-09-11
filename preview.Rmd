@@ -1,0 +1,786 @@
+---
+title: "rpapoda1"
+output: html_notebook
+---
+```{r Packages}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(stringr)
+
+```
+
+This is my lab notebook for the data analysis project where I will put to use
+the processes and tools I have found to do a complete data analysis start to finish.
+
+There will be much trial and error and learning as I go. This notebook will be messy.
+
+A few particularly important goals:
+1. Define every step of the way, including any necessary steps to complete other steps.
+2. Every single function or new idea that I put to use needs to be recorded in order to 
+make flashcards.
+3. Practice and formalize my iteration cycle.
+
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments
+
+
+
+
+The 5 Stages of Data Analysis:
+1. Setting the Stage (get a better name)
+2. EDA
+3. Build models
+4. Interpret and evaluate models
+5. Communicate
+
+## Stage 1: Setting the Stage
+<!-- I gotta get a better name for that  -->
+
+Initial thoughts on what needs to be accomplished during this stage
+1. Ask a question
+2. Collect data
+3. Inspect the data
+4. Refine and sharpen the question
+5. Clean and Tidy the data
+
+It's very important to note that interconnectedness between 1 and 2 above. In a 
+formal setting, the analyst may be given a question to answer, then be tasked with 
+collecting the data, or both may be given at the same time. In our informal, educational
+setting, we will choose the data first, then find an appropriate question.
+
+I'm going to quickly run through my iteration cycle for finding a data set.
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+The goal is to find a data set that from some private sector company that will
+lend itself well to questions about various performance factors
+
+So I found some Kickstarter data. There are 40 something files, 20 mb each. Let's 
+start with the first one
+```{r, eval=FALSE, include=FALSE}
+kickstarter <- read_csv("Kickstarter_2017-08-15T22_20_51_958Z/Kickstarter.csv")
+```
+
+
+So I need to inspect this dataset a little bit
+First I want to know the date range of this document
+That requires that I convert all of the dates into a usable format:
+
+```{r, eval=FALSE, include=FALSE}
+kickstarter$created_at <- as.POSIXct(as.numeric(kickstarter$created_at), origin = '1970-01-01', tz = 'GMT')
+
+kickstarter$deadline <- as.POSIXct(as.numeric(kickstarter$deadline), origin = '1970-01-01', tz = 'GMT')
+
+kickstarter$state_changed_at <- as.POSIXct(as.numeric(kickstarter$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+
+kickstarter$launched_at <- as.POSIXct(as.numeric(kickstarter$launched_at), origin = '1970-01-01', tz = 'GMT')
+
+View(kickstarter)
+```
+
+Next lets explore the date range. I'll arbitrarily pick the launch dates to study
+```{r, eval=FALSE, include=FALSE}
+kickstarter %>%
+    arrange(launched_at) %>%
+    summarise(max(launched_at), min(launched_at))
+```
+
+Interesting. That seems to go all the way until from 2009 until the date they were scraped.
+
+I guess I'll have to explore some other files. Perhaps this is a compilation or sample.
+
+
+So let's write a couple functions to import everything, then we'll join the datasets and
+convert the dates
+
+```{r, eval=FALSE, include=FALSE}
+import_kickstarter <- function() {
+    for(i in 1:41){
+        filename <- sprintf("Kickstarter%03d", i)
+        var_name <- sprintf("kickstarter%03d", i)
+        directory <- "Kickstarter_2017-08-15T22_20_51_958Z"
+        path <- paste(directory, filename, sep = "/")
+        full_path <- paste(path, "csv", sep = ".")
+        var_name <- read_csv(full_path)
+
+    }
+}
+
+```
+```{r, eval=FALSE, include=FALSE}
+import_kickstarter()
+```
+```{r, eval=FALSE, include=FALSE}
+i <- 2
+        filename <- sprintf("Kickstarter%03d", i)
+        var_name <- sprintf("kickstarter%03d", i)
+        directory <- "Kickstarter_2017-08-15T22_20_51_958Z"
+        path <- paste(directory, filename, sep = "/")
+        full_path <- paste(path, "csv", sep = ".")
+        sprintf("kickstarter%03d", i) <- read_csv(full_path)
+
+filename
+var_name
+directory
+path
+full_path
+```
+This is the one that worked:
+```{r, include=FALSE}
+files <- list.files(pattern = "*.csv")
+kickstarter <- files %>%
+    map(read_csv) %>%
+    bind_rows() 
+View(kickstarter)
+```
+
+Boom! Got it imported and combined! That pipe thing is kinda cool.
+```{r}
+head(kickstarter)
+```
+
+```{r}
+n_distinct(kickstarter)
+```
+
+```{r}
+dim(kickstarter)
+```
+
+```{r}
+str(kickstarter)
+```
+
+```{r}
+colnames(kickstarter)
+```
+```{r}
+names(kickstarter)
+
+```
+
+
+```{r}
+summary(kickstarter)
+```
+
+```{r}
+summary(kickstarter[14:17])
+```
+```{r}
+format(object.size(kickstarter), units = "Mb")
+object.size(kickstarter)
+```
+
+
+SO that leaves us with a short list of useful tasks for inspecting the dataset:
+head()
+str()
+summary()
+dim()
+n_distinct()
+colnames() or names()
+object.size() # with format() and units arg
+
+Convert state to a factor
+
+```{r}
+is.factor(kickstarter$state)
+kickstarter$state <- as.factor(kickstarter$state)
+is.factor(kickstarter$state)
+
+```
+
+Convert dates
+
+```{r}
+kickstarter$created_at <- as.POSIXct(as.numeric(kickstarter$created_at), origin = '1970-01-01', tz = 'GMT')
+kickstarter$deadline <- as.POSIXct(as.numeric(kickstarter$deadline), origin = '1970-01-01', tz = 'GMT')
+kickstarter$state_changed_at <- as.POSIXct(as.numeric(kickstarter$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+kickstarter$launched_at <- as.POSIXct(as.numeric(kickstarter$launched_at), origin = '1970-01-01', tz = 'GMT')
+head(kickstarter)
+
+```
+
+Parse Dates
+```{r, eval=FALSE, include=FALSE}
+parse_date_time(kickstarter$deadline)
+```
+Maybe I don't need to parse? Seems too easy...
+
+```{r}
+kickstarter %>%
+    arrange(launched_at) %>%
+    summarise(min(launched_at), max(launched_at))
+kickstarter %>%
+    arrange(created_at) %>%
+    summarise(min(created_at), max(created_at))
+```
+```{r, eval=FALSE, include=FALSE}
+kickstarter %>%
+    mutate(created_to_launched = launched_at - created_at,
+           created_to_launched_days = created_to_launched / 60 / 24)
+```
+
+```{r, eval=FALSE, include=FALSE}
+ggplot(data = kickstarter, aes(x = created_at)) + 
+    geom_histogram()
+ggplot(data = kickstarter, aes(x = launched_at)) + 
+    geom_histogram()
+ggplot(data = kickstarter, aes(x = created_to_launched)) + 
+    geom_histogram()
+```
+
+Normal time between creation and launch?
+```{r, eval=FALSE, include=FALSE}
+kickstarter %>%
+    mutate(created_to_launched = as.numeric(seconds_to_period(as.interval(created_at, launched_at)))) %>%
+    ggplot(aes(created_to_launched)) + 
+    geom_histogram() +
+    xlim(c(0, 10000))
+    
+```
+
+```{r, eval=FALSE, include=FALSE}
+ggplot(aes(as.numeric(created_to_launched))) + 
+    geom_histogram(bins = 20) 
+
+```
+
+Back to my first iteration cycle: finding a dataset.
+
+From earlier:
+I'm going to quickly run through my iteration cycle for finding a data set.
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+The goal is to find a data set that from some private sector company that will
+lend itself well to questions about various performance factors
+
+And a reminder of my iteration process:
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments
+
+2. Attempt to complete the goal or perform the task
+Done
+
+3. Compare your results to your expectations or your criteria for success
+Kickstarter data about potential startups was definitely not what I had in mind (
+I was thinking more along the lines of a single private sector company)
+
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters.
+My interpretation is that the expectations should be altered (and we should stick
+with the Kickstarter data)
+
+And now let's work on the question
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+The goal is to have a question that will meet several criteria:
+    1. The answer may provide insight into factors that lead to successful funding
+    on Kickstarter.
+    2. Can be answered with the current dataset.
+    3. Provides the opportunity to apply the Process of Data Science
+    4. Allows for exploration of the similarities and differences between Inferential
+    and Predictive questions. The question should fall into one of the categories, but 
+    could be varied slightly to fall into the other for learning purposes.
+    5. Be sufficiently sharp to provide useful insight.
+
+2. Attempt to complete the goal or perform the task
+First pass: be very general.
+Attempt: What is the factor that best predicts successful funding on Kickstarter?
+
+3. Compare your results to your expectations or your criteria for success
+We'll do this one by one.
+1. The answer may provide insight into factors that lead to successful funding
+    on Kickstarter.
+-I think I've accomplished this one. If we answer the question, we would know about the factors that contribute to success. It feels its usefulness is limited by only looking
+for the single best variable. Perhaps we could change it to "factor or combination of
+factors".
+
+New question: What factor or combination of factors best predict successful funding on
+Kickstarter?
+
+Now we'll compare it to criteria #2.
+    2. Can be answered with the current dataset.
+-This one requires a little research and thought.
+```{r}
+names(kickstarter)
+```
+So what variables have any chance of being useful here?
+id-no
+photo-no
+name-possibly
+blurb-possibly
+goal-possibly
+pledged-possibly
+state-possibly
+slug-possibly
+disable_communication-possibly
+country-possibly
+currency-possibly
+currency_symbol-no
+currency_trailing_code-no
+deadline-possibly
+state_changed_at-possibly
+created_at-possibly
+launched_at--possibly
+staff_pick-possibly
+is_starrable-possibly
+backers_count-possibly
+static_usd_rate-no
+usd-pledged-possibly
+creator-possibly
+location-possibly
+category-possibly
+profile-possibly
+spotlight-possibly
+urls-no
+source-url
+friends-possibly
+is_starred-possibly
+is_backing-possibly
+permissions-possibly
+
+So a lot of those will require more info about what each of those variables actually
+contain. We can go look, but right now we just need a rough idea about whether or not we
+have a chance of answering the question. We can explore what information each of those 
+variables contains in the next stage (EDA).
+
+And on to criteria #3:
+3. Provides the opportunity to apply the Process of Data Science
+Since we have nearly completed stage 1, lets walk through the next 4 stages, simply deciding
+whether we are likely or not to be able to use this question at each stage
+Stage 2: EDA - yes
+Stage 3: Build a model - yes
+Stage 4: Interpret the results - yes
+Stage 5: Communicate - yes
+Overall: yes
+
+Criteria 4:
+4. Allows for exploration of the similarities and differences between Inferential
+    and Predictive questions. The question should fall into one of the categories, but 
+    could be varied slightly to fall into the other for learning purposes.
+-This one requires a few definitions:
+An **inferential data analysis** quantifies
+whether an observed pattern will likely hold
+beyond the data set in hand. 
+
+Going beyond an inferential data analysis,
+which quantifies the relationships at population
+scale, a **predictive data analysis** uses
+a subset of measurements (the features)
+to predict another measurement (the outcome)
+on a single person or unit. 
+
+Shit - I just realized something. As its phrased, I would be trying to perform classification, rather than regression with a continuous outcome. Hmmmm.
+Is there a variable I could use as an outcome that is continuous? 
+pledged, backers_count, or (mutated) pledged as a percentage of goal.
+I tlike the pledged as a percentage of goal because it gives degrees of success, instead of just binary. Otherwise, barely failed and really failed would be treated the same. Similarly, barely failed and barely succeeded would be treated as completely different.
+Ok I like that. Crisis averted. I could also use the binary version as a means of comparison, and simply to show another type of model.
+
+So back to inferential v predictive, as originally phrased, it is a predictive question.
+This is more useful than attempting to determine whether or not it would hold at the population scale. We can stick with prediction, but show how to use inferential statistics when necessary.
+
+And finally, criteria #5:
+    5. Be sufficiently sharp to provide useful insight.
+As it stands, it is not sharp. However, we can sharpen as necessary. We can put together sharper questions in order to test our models (hypotheses).
+-I might take this one out.
+
+We could also compare to AoDS criteria:
+Characteristics of a Good Question:
+1. Should be of interest to your audience
+2. Should not have already been answered
+3. Should stem from a plausible framework
+4. Should be answerable
+5. Specificity
+
+But that sounds a little boring...
+
+I think I have sufficiently met my criteria after the one iteration. Almost too easy.
+
+It's worth discussing how this process continues through (at least) the next two stages. The purpose of EDA is to explore the variables, identify relationships, and generate ideas to test further. We will come up with more specific questions to test later. Specificity will increase to the point of becoming a hypothesis (or pair of hypotheses).
+
+So onto some cleaning and tidying.
+
+Let's first compare to tidy principles:
+1. Each variable forms a column. 
+2. Each observation forms a row. 
+3. Each type of observational unit forms a table
+
+We're actually pretty tidy already. When I go back through, I should find some messy datasets and perform some basic tidying.
+
+Other common data cleaning tasks:
+outlier checking 
+date parsing 
+missing value imputation
+
+I think I took care of the date parsing, right? When I converted from unix, they were already parsed. But lets get a definition.
+
+So let's start checking for and playing with missing data. BLAAAAHHHH
+```{r}
+kickstarter[!complete.cases(kickstarter),]
+```
+
+```{r}
+kickstarter[complete.cases(kickstarter),]
+```
+
+```{r}
+options(scipen = 999)
+colMeans(is.na(kickstarter))
+```
+```{r}
+head(kickstarter[30:33], 100)
+
+```
+```{r}
+nrow(kickstarter) * mean(is.na(kickstarter$location))
+
+```
+
+
+```{r}
+sum(is.na(kickstarter$location))
+```
+
+So what other tasks should I introduce as data cleaning?
+Parse dates
+Manipulate strings?
+Convert to factors?
+Mutate?
+Check for outliers? Or wait until EDA?
+```{r, eval=FALSE, include=FALSE}
+install.packages("outliers")
+```
+
+```{r, eval=FALSE, include=FALSE}
+outliers::outlier(kickstarter$pledged)
+
+```
+
+```{r}
+kickstarter %>%
+    summarise(max(pledged))
+```
+```{r, eval=FALSE, include=FALSE}
+outliers::rm.outlier(kickstarter$pledged) %>%
+    ggplot(kickstarter, aes(pledged)) + 
+    geom_histogram(bins = 30)
+```
+
+This should be done visually
+```{r}
+ggplot(kickstarter, aes(state, pledged)) + 
+    geom_boxplot()
+```
+```{r}
+kickstarter %>%
+    filter(pledged > 7500000) 
+```
+
+```{r}
+kickstarter %>%
+    arrange(desc(pledged))
+```
+
+```{r Grouped Summary}
+kickstarter %>%
+    group_by(state) %>%
+    summarise(n(), mean(pledged))
+```
+
+We should probably remove live entries since they are not complete.
+
+Since live would indicate a deadline of after 8/15/17, let's see if we can see how many there are, and compare to those with the live state.
+
+```{r}
+kickstarter %>%
+    filter(deadline >= ymd("2017-08-15")) %>%
+        group_by(state) %>%
+     summarise(n(), mean(pledged))
+
+```
+
+So some may have been suspended or cancelled, or also reached their goal before the data was scraped. But the vast majority are live. We could check that the other way as well, just to be sure we know what we're working with.
+
+```{r}
+kickstarter %>%
+    filter(deadline <= ymd("2017-08-15")) %>%
+        group_by(state) %>%
+     summarise(n(), mean(pledged))
+
+```
+
+
+Confirmed my suspicion that live records are just ones that haven't met their deadline as of the time they were scraped. We should remove them.
+
+```{r}
+169832-3573
+kickstarter <- kickstarter %>%
+    filter(state != "live")
+nrow(kickstarter)
+```
+
+Is the data tidy?
+Hadley's Definition of Tidy Data:
+1. Each variable forms a column. 
+2. Each observation forms a row. 
+3. Each type of observational unit forms a table
+
+Yes we are pretty much tidy. When i come back through here, I need to come up with (randomly construct) an untidy dataset, and perform some common operations on it.
+
+A little more cleaning I could do is remove some uneccesary columns to make things a little easier to see and work with. Let's revisit a couple things.
+```{r}
+head(kickstarter)
+```
+Some possible columns to remove:
+photo
+friends
+is_starred
+is_backing
+permissions
+
+A few need to be made to factors:
+disable_communication
+country
+currency
+currency_symbol
+currency_trailing_code
+staff_pick 
+is_starrable 
+spotlight 
+
+
+
+Let's make the factors real quickly
+```{r}
+kickstarter$state <- as.factor(kickstarter$state)
+kickstarter$disable_communication <- as.factor(kickstarter$disable_communication)
+kickstarter$country <- as.factor(kickstarter$country)
+kickstarter$currency <- as.factor(kickstarter$currency)
+kickstarter$currency_symbol <- as.factor(kickstarter$currency_symbol)
+kickstarter$currency_trailing_code <- as.factor(kickstarter$currency_trailing_code)
+kickstarter$staff_pick <- as.factor(kickstarter$staff_pick)
+kickstarter$is_starrable <- as.factor(kickstarter$is_starrable)
+kickstarter$spotlight <- as.factor(kickstarter$spotlight)
+
+```
+
+
+```{r}
+names(kickstarter)
+```
+
+```{r}
+summary(kickstarter)
+```
+Some possible columns to remove:
+photo
+friends
+is_starred
+is_backing
+permissions
+
+```{r}
+kickstarter <- kickstarter %>%
+    select(-c(photo, friends, is_starred, is_backing, permissions))
+dim(kickstarter)
+```
+Let's also remove profile
+```{r}
+kickstarter <- kickstarter %>%
+    select(-profile)
+dim(kickstarter)
+head(kickstarter)
+```
+https://www.kickstarter.com/discover/categories/art/digital%20art?ref=category_modal&sort=magic
+{"web":{"project":"https://www.kickstarter.com/projects/ithaqualabs/100-fantasy-portraits-for-oria-trail-the-game?ref=category_newest","rewards":"https://www.kickstarter.com/projects/ithaqualabs/100-fantasy-portraits-for-oria-trail-the-game/rewards"}}	
+
+Remove urls
+```{r}
+kickstarter <- kickstarter %>%
+    select(-urls)
+dim(kickstarter)
+head(kickstarter)
+```
+
+And a few that could use some string manipulation:
+creator
+location
+category
+profile
+
+```{r}
+kickstarter %>%
+    select(category)
+```
+{"urls":{"web":{"discover":"http://www.kickstarter.com/discover/categories/art/digital%20art"}},"color":16760235,"parent_id":1,"name":"Digital Art","id":21,"position":3,"slug":"art/digital art"}
+
+{"urls":{"web":{"discover":"http://www.kickstarter.com/discover/categories/art/illustration"}},"color":16760235,"parent_id":1,"name":"Illustration","id":22,"position":4,"slug":"art/illustration"}
+```{r}
+length(levels(as.factor(kickstarter$category)))
+```
+Let's experiment
+
+```{r, eval = FALSE, include=FALSE}
+string <- "aaaaaxbbbbbycccc"
+x <- str_locate(string, "x")
+y <- str_locate(string, "y")
+data.class(x)
+data.class(x[1,1])
+str_sub(string, (x[1,1]+1), (y[1,1]-1))
+```
+```{r}
+extract_category <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"name":"'
+    end <- '"id"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 8), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$category <- extract_category(kickstarter$category)
+
+```
+
+Extract creator
+{"urls":{"web":{"user":"https://www.kickstarter.com/profile/ithaqualabs"},"api":{"user":"https://api.kickstarter.com/v1/users/246410818?signature=1502949105.be71a5c8169617f9faeec39b384b715b0dcbbdcd"}},"is_registered":true,"name":"Christopher \\"Michael\\" Hall","id":246410818,"avatar":{"small":"https://ksr-ugc.imgix.net/assets/007/018/494/e96cc66ca639dfc9055df48505952104_original.jpg?w=160&h=160&fit=crop&v=1461428617&auto=format&q=92&s=947233770a463f383a6e02ce9de927ab","thumb":"https://ksr-ugc.imgix.net/assets/007/018/494/e96cc66ca639dfc9055df48505952104_original.jpg?w=40&h=40&fit=crop&v=1461428617&auto=format&q=92&s=2235a24568ec8aadb35373184933a347","medium":"https://ksr-ugc.imgix.net/assets/007/018/494/e96cc66ca639dfc9055df48505952104_original.jpg?w=160&h=160&fit=crop&v=1461428617&auto=format&q=92&s=947233770a463f383a6e02ce9de927ab"},"slug":"ithaqualabs"}
+
+```{r}
+extract_creator <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"name":"'
+    end <- '"id"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 8), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$creator <- extract_creator(kickstarter$creator)
+
+kickstarter %>%
+    select(creator)
+```
+
+Extract location
+{"country":"US","urls":{"web":{"discover":"https://www.kickstarter.com/discover/places/atlanta-ga","location":"https://www.kickstarter.com/locations/atlanta-ga"},"api":{"nearby_projects":"https://api.kickstarter.com/v1/discover?signature=1502924597.cb3fbf5fbe9154ddf04d85e7be879e4403e3fd98&woe_id=2357024"}},"name":"Atlanta","displayable_name":"Atlanta, GA","short_name":"Atlanta, GA","id":2357024,"state":"GA","type":"Town","is_root":false,"slug":"atlanta-ga"}
+
+```{r}
+extract_location <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"displayable_name":"'
+    end <- '"short_name"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 20), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$location <- extract_location(kickstarter$location)
+
+kickstarter %>%
+    select(location)
+```
+
+Extract profile - Nevermind, get rid of it!
+{"background_image_opacity":0.8,"should_show_feature_image_section":true,"link_text_color":null,"state_changed_at":1483170864,"blurb":null,"background_color":null,"project_id":2816416,"name":null,"feature_image_attributes":{"image_urls":{"default":"https://ksr-ugc.imgix.net/assets/015/025/634/778323e325e49e1cf47cebc49e420b00_original.jpg?crop=faces&w=1552&h=873&fit=crop&v=1483175120&auto=format&q=92&s=9dfd6c8242477cf82c8e8c03d0801a45","baseball_card":"https://ksr-ugc.imgix.net/assets/015/025/634/778323e325e49e1cf47cebc49e420b00_original.jpg?crop=faces&w=560&h=315&fit=crop&v=1483175120&auto=format&q=92&s=28ca75d75ac91e75cbbdcddfa2c6042e"}},"link_url":null,"show_feature_image":false,"id":2816416,"state":"inactive","text_color":null,"link_text":null,"link_background_color":null}
+
+```{r, eval=FALSE, include=FALSE}
+extract_profile <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"displayable_name":"'
+    end <- '"short_name"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 20), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$profile <- extract_profile(kickstarter$profile)
+
+kickstarter %>%
+    select(profile)
+```
+And now convert a couple of those recently extracted character strings to factors
+```{r}
+kickstarter$category <- as.factor(kickstarter$category)
+kickstarter$location <- as.factor(kickstarter$location)
+kickstarter$id <- as.character(kickstarter$id)
+summary(kickstarter)
+
+
+```
+
+So I want to run back through what I did in stage 1, which I feel I have now completed.
+A couple levels to focus on:
+Top level: I think I stuck with the basic activities that I started with, but I will verify that.
+Second level: I think they were all pretty straight forward, except for the cleaning part. I want to be sure and outline all of the things I did for cleaning so that I can generalize a little bit.
+And I want to be sure that I did in fact complete the other stages. I also want to see if there were any steps worth listing for any of those. Also, would anything have benefitted from a more formal walk through the iteration process?
+
+To begin: My initial goals for things to accomplish in Stage 1:
+Initial thoughts on what needs to be accomplished during this stage
+1. Ask a question
+2. Collect data
+3. Inspect the data
+4. Refine and sharpen the question (not really a distinct stop - encompassed in the iteration cycle)
+5. Clean and Tidy the data
+
+Inspect:
+head
+n_distinct
+dim
+str
+colnames/names
+summary
+object.size
+Plotted some dates
+Some grouped summaries
+
+Clean and Tidy:
+Converted Dates
+Characters to factors
+Check for and deal with missing data
+Explore and deal with outliers
+Remove unnecessary data (generalized from useless columns and live/ongoing cases)
+Manipulate character strings
+
+So I think that the inspect steps and the clean/tidy step could really benefit from a stated goal at the beginning. This would allow use of the iteration cycle and more clearly define the work to be done.
+
+Goal for Inspect: To develop an idea of the potential usefulness of the dataset and identify problems with the dataset.
+
+Goal for Clean and Tidy: To put the dataset into a useful format and fix problems with the dataset.
+
+I like it. I could revisit these on the next pass.
+
+So should I go with a different notebook for the next stage?
+Nah
+
+## Stage 2: Exploratory Data Analysis (EDA)
