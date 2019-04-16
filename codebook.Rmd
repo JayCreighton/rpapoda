@@ -1,0 +1,32 @@
+---
+title: "Codebook"
+output: html_notebook
+---
+Soooo its not that cool. Just a slightly better formatted version of summary().
+
+What should be included in a codebook:
+How the data was collected
+A script detailing any processing
+Information about each variable, including units, levels (of factor variables) and their meaning, specific information regarding missing data
+General information about missing data, including information about how they are coded
+
+What if I added the descriptions?
+```{r}
+# install.packages("memisc")
+# library(memisc)
+# library(lubridate)
+
+# 
+# ks %>% 
+#     dplyr::select(-c(created_at, launched_at, deadline, state_changed_at)) %>% 
+#     codebook()
+
+ks$launched_at <- as.numeric(ks$launched_at)
+ks$deadline <- as.numeric(ks$deadline)
+ks$state_changed_at <- as.numeric(ks$state_changed_at)
+ks$created_at <- as.numeric(ks$created_at)
+
+codebook(ks)
+
+```
+
