@@ -1,0 +1,90 @@
+---
+title: "rpapoda Phase 1: Setting the Stage"
+output: html_notebook
+bibliography: bib.bib
+---
+
+# What should be included in a codebook:  
+<!-- This may be copied straight from that style guide. I need to update it once I'm done with the codebook to reflect what I've done/what I think is necessary -->
+* How the data was collected  
+* A script detailing any processing  
+* Information about each variable, including units, levels (of factor variables) and their meaning, specific information regarding missing data  
+* General information about missing data, including information about how they are coded  
+
+## Session Info and Packages
+
+```{r}
+sessionInfo()
+```
+
+
+
+```{r load necessary packages}
+library(tidyverse)
+library(lubridate)
+library(knitr)
+```
+
+## Info About And Importing The Dataset
+
+The dataset used for this project was scraped from [Kickstarter.com](https://www.kickstarter.com/) and can be found at https://webrobots.io/kickstarter-datasets/. The data provides information on individual Kickstarter projects. The entire dataset contains over 169,000 entries going back to 2009. It was downloaded from the site referenced above on August 16, 2017.
+
+Note: To make the dataset useful for this course, some processing was done prior to initial import. 
+
+```{r import dataset}
+ks <- read_csv("kickstarter_data.csv")
+```
+
+## Processing of the Data
+
+<!-- Phase 1 -->
+
+### Dates
+The dates were originally in Unix time. We have converted them to the "POSIXct" class. 
+
+```{r converting dates}
+ks$created_at <- as.POSIXct(as.numeric(ks$created_at), origin = '1970-01-01', tz = 'GMT')
+
+ks$deadline <- as.POSIXct(as.numeric(ks$deadline), origin = '1970-01-01', tz = 'GMT')
+
+ks$state_changed_at <- as.POSIXct(as.numeric(ks$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+
+ks$launched_at <- as.POSIXct(as.numeric(ks$launched_at), origin = '1970-01-01', tz = 'GMT')
+
+```
+
+
+<!-- ### Removing any unnecessary variables -->
+<!-- Some of the variables contained no values whatsoever, and we removed them. -->
+
+<!-- ```{r remove empty columns} -->
+<!-- ks <- dplyr::select(ks, -c(photo, friends, is_starred, is_backing, permissions)) -->
+<!-- ``` -->
+
+<!-- Phase 2 -->
+
+### Removing Empty Columns
+
+Several of the columns contained no data, and were removed.
+
+```{r removing the empty columns}
+(ks <- ks %>% 
+    select(-c(friends, is_starred, is_backing, permissions)))
+```
+
+### Encoding Factors
+
+Several of the variables will be used as factors and needed to be converted as such.
+
+```{r encoding factors}
+ks$state <- factor(ks$state)
+ks$country <- factor(ks$country)
+ks$category <- factor(ks$category)
+ks$is_starrable <- factor(ks$is_starrable)
+ks$spotlight <- factor(ks$spotlight)
+ks$currency <- factor(ks$currency)
+ks$location <- factor(ks$location)
+ks$creator <- factor(ks$creator)
+
+```
+

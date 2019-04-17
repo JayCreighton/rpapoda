@@ -1,0 +1,3108 @@
+---
+title: "rpapoda1"
+output:
+  html_document:
+    df_print: paged
+---
+```{r clean slate, eval=FALSE}
+# Useful way to start things off:
+# rm(list=ls()) # Clear Environment # Apparently this isnt considered reproducible, but its probably a good idea to teach it
+
+```
+
+
+```{r Packages}
+library(tidyverse)
+library(magrittr)
+library(readr)
+library(lubridate)
+library(stringr)
+library(forcats)
+library(slipper)
+library(dplyr)
+library(MASS)
+```
+
+This is my lab notebook for the data analysis project where I will put to use
+the processes and tools I have found to do a complete data analysis start to finish.
+
+There will be much trial and error and learning as I go. This notebook will be messy.
+
+A few particularly important goals:
+1. Define every step of the way, including any necessary steps to complete other steps.
+2. Every single function or new idea that I put to use needs to be recorded in order to 
+make flashcards.
+3. Practice and formalize my iteration cycle.
+
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments, and repeat as necessary
+
+
+
+The 5 Stages of Data Analysis:
+1. Setting the Stage (get a better name)
+2. EDA
+3. Build models
+4. Interpret and evaluate models
+5. Communicate
+
+## Stage 1: Setting the Stage
+<!-- I gotta get a better name for that  -->
+
+Initial thoughts on what needs to be accomplished during this stage
+1. Ask a question
+2. Collect data
+3. Inspect the data
+4. Refine and sharpen the question
+5. Clean and Tidy the data
+
+It's very important to note that interconnectedness between 1 and 2 above. In a 
+formal setting, the analyst may be given a question to answer, then be tasked with 
+collecting the data, or both may be given at the same time. In our informal, educational
+setting, we will choose the data first, then find an appropriate question.
+
+I'm going to quickly run through my iteration cycle for finding a data set.
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+The goal is to find a data set that from some private sector company that will
+lend itself well to questions about various performance factors
+
+So I found some Kickstarter data. There are 40 something files, 20 mb each. Let's 
+start with the first one
+```{r, eval=FALSE, include=FALSE}
+kickstarter <- read_csv("Kickstarter_2017-08-15T22_20_51_958Z/Kickstarter.csv")
+```
+
+
+So I need to inspect this dataset a little bit
+First I want to know the date range of this document
+That requires that I convert all of the dates into a usable format:
+
+```{r, eval=FALSE, include=FALSE}
+kickstarter$created_at <- as.POSIXct(as.numeric(kickstarter$created_at), origin = '1970-01-01', tz = 'GMT')
+
+kickstarter$deadline <- as.POSIXct(as.numeric(kickstarter$deadline), origin = '1970-01-01', tz = 'GMT')
+
+kickstarter$state_changed_at <- as.POSIXct(as.numeric(kickstarter$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+
+kickstarter$launched_at <- as.POSIXct(as.numeric(kickstarter$launched_at), origin = '1970-01-01', tz = 'GMT')
+
+```
+
+Next lets explore the date range. I'll arbitrarily pick the launch dates to study
+```{r, eval=FALSE, include=FALSE}
+kickstarter %>%
+    arrange(launched_at) %>%
+    summarise(max(launched_at), min(launched_at))
+```
+
+Interesting. That seems to go all the way until from 2009 until the date they were scraped.
+
+I guess I'll have to explore some other files. Perhaps this is a compilation or sample.
+
+
+So let's write a couple functions to import everything, then we'll join the datasets and
+convert the dates
+
+```{r, eval=FALSE, include=FALSE}
+import_kickstarter <- function() {
+    for(i in 1:41){
+        filename <- sprintf("Kickstarter%03d", i)
+        var_name <- sprintf("kickstarter%03d", i)
+        directory <- "Kickstarter_2017-08-15T22_20_51_958Z"
+        path <- paste(directory, filename, sep = "/")
+        full_path <- paste(path, "csv", sep = ".")
+        var_name <- read_csv(full_path)
+
+    }
+}
+
+```
+```{r, eval=FALSE, include=FALSE}
+import_kickstarter()
+```
+```{r, eval=FALSE, include=FALSE}
+i <- 2
+        filename <- sprintf("Kickstarter%03d", i)
+        var_name <- sprintf("kickstarter%03d", i)
+        directory <- "Kickstarter_2017-08-15T22_20_51_958Z"
+        path <- paste(directory, filename, sep = "/")
+        full_path <- paste(path, "csv", sep = ".")
+        sprintf("kickstarter%03d", i) <- read_csv(full_path)
+
+filename
+var_name
+directory
+path
+full_path
+```
+This is the one that worked:
+```{r, include=FALSE}
+files <- list.files(pattern = "*.csv")
+kickstarter <- files %>%
+    map(read_csv) %>%
+    bind_rows() 
+```
+
+Boom! Got it imported and combined! That pipe thing is kinda cool.
+```{r}
+head(kickstarter)
+```
+
+```{r}
+n_distinct(kickstarter)
+```
+
+```{r}
+dim(kickstarter)
+```
+
+```{r}
+str(kickstarter)
+```
+
+```{r}
+colnames(kickstarter)
+```
+```{r}
+names(kickstarter)
+
+```
+
+
+```{r}
+summary(kickstarter)
+```
+
+```{r}
+summary(kickstarter[14:17])
+```
+
+```{r}
+oldest <- kickstarter %>% 
+    summarise(min(created_at))
+as.Date(oldest)
+head(kickstarter)
+parse_date_time(oldest)
+as.POSIXlt.numeric(oldest)
+```
+
+
+```{r}
+format(object.size(kickstarter), units = "Mb")
+object.size(kickstarter)
+```
+
+
+SO that leaves us with a short list of useful tasks for inspecting the dataset:
+head()
+str()
+summary()
+dim()
+n_distinct()
+colnames() or names()
+object.size() # with format() and units arg
+
+Convert state to a factor
+
+```{r}
+is.factor(kickstarter$state)
+kickstarter$state <- as.factor(kickstarter$state)
+is.factor(kickstarter$state)
+
+```
+
+Convert dates
+
+```{r}
+kickstarter$created_at <- as.POSIXct(as.numeric(kickstarter$created_at), origin = '1970-01-01', tz = 'GMT')
+kickstarter$deadline <- as.POSIXct(as.numeric(kickstarter$deadline), origin = '1970-01-01', tz = 'GMT')
+kickstarter$state_changed_at <- as.POSIXct(as.numeric(kickstarter$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+kickstarter$launched_at <- as.POSIXct(as.numeric(kickstarter$launched_at), origin = '1970-01-01', tz = 'GMT')
+head(kickstarter)
+
+```
+
+Parse Dates
+```{r, eval=FALSE, include=FALSE}
+parse_date_time(kickstarter$deadline)
+```
+Maybe I don't need to parse? Seems too easy...
+
+```{r}
+kickstarter %>%
+    arrange(launched_at) %>%
+    summarise(min(launched_at), max(launched_at))
+kickstarter %>%
+    arrange(created_at) %>%
+    summarise(min(created_at), max(created_at))
+```
+```{r, eval=FALSE, include=FALSE}
+kickstarter %>%
+    mutate(created_to_launched = launched_at - created_at,
+           created_to_launched_days = created_to_launched / 60 / 24)
+```
+
+```{r, eval=FALSE, include=FALSE}
+ggplot(data = kickstarter, aes(x = created_at)) + 
+    geom_histogram()
+ggplot(data = kickstarter, aes(x = launched_at)) + 
+    geom_histogram()
+ggplot(data = kickstarter, aes(x = created_to_launched)) + 
+    geom_histogram()
+```
+
+Normal time between creation and launch?
+```{r, eval=FALSE, include=FALSE}
+kickstarter %>%
+    mutate(created_to_launched = as.numeric(seconds_to_period(as.interval(created_at, launched_at)))) %>%
+    ggplot(aes(created_to_launched)) + 
+    geom_histogram() +
+    xlim(c(0, 10000))
+    
+```
+
+```{r, eval=FALSE, include=FALSE}
+ggplot(aes(as.numeric(created_to_launched))) + 
+    geom_histogram(bins = 20) 
+
+```
+
+Back to my first iteration cycle: finding a dataset.
+
+From earlier:
+I'm going to quickly run through my iteration cycle for finding a data set.
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+The goal is to find a data set that from some private sector company that will
+lend itself well to questions about various performance factors
+
+And a reminder of my iteration process:
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments
+
+2. Attempt to complete the goal or perform the task
+Done
+
+3. Compare your results to your expectations or your criteria for success
+Kickstarter data about potential startups was definitely not what I had in mind (
+I was thinking more along the lines of a single private sector company)
+
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters.
+My interpretation is that the expectations should be altered (and we should stick
+with the Kickstarter data)
+
+And now let's work on the question
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+The goal is to have a question that will meet several criteria:
+    1. The answer may provide insight into factors that lead to successful funding
+    on Kickstarter.
+    2. Can be answered with the current dataset.
+    3. Provides the opportunity to apply the Process of Data Science
+    4. Allows for exploration of the similarities and differences between Inferential
+    and Predictive questions. The question should fall into one of the categories, but 
+    could be varied slightly to fall into the other for learning purposes.
+    5. Be sufficiently sharp to provide useful insight.
+
+2. Attempt to complete the goal or perform the task
+First pass: be very general.
+Attempt: What is the factor that best predicts successful funding on Kickstarter?
+
+3. Compare your results to your expectations or your criteria for success
+We'll do this one by one.
+1. The answer may provide insight into factors that lead to successful funding
+    on Kickstarter.
+-I think I've accomplished this one. If we answer the question, we would know about the factors that contribute to success. It feels its usefulness is limited by only looking
+for the single best variable. Perhaps we could change it to "factor or combination of
+factors".
+
+New question: What factor or combination of factors best predict successful funding on
+Kickstarter?
+
+Now we'll compare it to criteria #2.
+    2. Can be answered with the current dataset.
+-This one requires a little research and thought.
+```{r}
+names(kickstarter)
+```
+So what variables have any chance of being useful here?
+id-no
+photo-no
+name-possibly
+blurb-possibly
+goal-possibly
+pledged-possibly
+state-possibly
+slug-possibly
+disable_communication-possibly
+country-possibly
+currency-possibly
+currency_symbol-no
+currency_trailing_code-no
+deadline-possibly
+state_changed_at-possibly
+created_at-possibly
+launched_at--possibly
+staff_pick-possibly
+is_starrable-possibly
+backers_count-possibly
+static_usd_rate-no
+usd-pledged-possibly
+creator-possibly
+location-possibly
+category-possibly
+profile-possibly
+spotlight-possibly
+urls-no
+source-url
+friends-possibly
+is_starred-possibly
+is_backing-possibly
+permissions-possibly
+
+So a lot of those will require more info about what each of those variables actually
+contain. We can go look, but right now we just need a rough idea about whether or not we
+have a chance of answering the question. We can explore what information each of those 
+variables contains in the next stage (EDA).
+
+And on to criteria #3:
+3. Provides the opportunity to apply the Process of Data Science
+Since we have nearly completed stage 1, lets walk through the next 4 stages, simply deciding
+whether we are likely or not to be able to use this question at each stage
+Stage 2: EDA - yes
+Stage 3: Build a model - yes
+Stage 4: Interpret the results - yes
+Stage 5: Communicate - yes
+Overall: yes
+
+Criteria 4:
+4. Allows for exploration of the similarities and differences between Inferential
+    and Predictive questions. The question should fall into one of the categories, but 
+    could be varied slightly to fall into the other for learning purposes.
+-This one requires a few definitions:
+An **inferential data analysis** quantifies
+whether an observed pattern will likely hold
+beyond the data set in hand. 
+
+Going beyond an inferential data analysis,
+which quantifies the relationships at population
+scale, a **predictive data analysis** uses
+a subset of measurements (the features)
+to predict another measurement (the outcome)
+on a single person or unit. 
+
+Shit - I just realized something. As its phrased, I would be trying to perform classification, rather than regression with a continuous outcome. Hmmmm.
+Is there a variable I could use as an outcome that is continuous? 
+pledged, backers_count, or (mutated) pledged as a percentage of goal.
+I tlike the pledged as a percentage of goal because it gives degrees of success, instead of just binary. Otherwise, barely failed and really failed would be treated the same. Similarly, barely failed and barely succeeded would be treated as completely different.
+Ok I like that. Crisis averted. I could also use the binary version as a means of comparison, and simply to show another type of model.
+
+So back to inferential v predictive, as originally phrased, it is a predictive question.
+This is more useful than attempting to determine whether or not it would hold at the population scale. We can stick with prediction, but show how to use inferential statistics when necessary.
+
+And finally, criteria #5:
+    5. Be sufficiently sharp to provide useful insight.
+As it stands, it is not sharp. However, we can sharpen as necessary. We can put together sharper questions in order to test our models (hypotheses).
+-I might take this one out.
+
+We could also compare to AoDS criteria:
+Characteristics of a Good Question:
+1. Should be of interest to your audience
+2. Should not have already been answered
+3. Should stem from a plausible framework
+4. Should be answerable
+5. Specificity
+
+But that sounds a little boring...
+
+I think I have sufficiently met my criteria after the one iteration. Almost too easy.
+
+It's worth discussing how this process continues through (at least) the next two stages. The purpose of EDA is to explore the variables, identify relationships, and generate ideas to test further. We will come up with more specific questions to test later. Specificity will increase to the point of becoming a hypothesis (or pair of hypotheses).
+
+So onto some cleaning and tidying.
+
+Let's first compare to tidy principles:
+1. Each variable forms a column. 
+2. Each observation forms a row. 
+3. Each type of observational unit forms a table
+
+We're actually pretty tidy already. When I go back through, I should find some messy datasets and perform some basic tidying.
+
+Other common data cleaning tasks:
+outlier checking 
+date parsing 
+missing value imputation
+
+I think I took care of the date parsing, right? When I converted from unix, they were already parsed. But lets get a definition.
+
+So let's start checking for and playing with missing data. BLAAAAHHHH
+```{r}
+kickstarter[!complete.cases(kickstarter),]
+```
+
+```{r}
+kickstarter[complete.cases(kickstarter),]
+```
+
+```{r}
+options(scipen = 999)
+colMeans(is.na(kickstarter))
+```
+```{r}
+head(kickstarter[30:33], 100)
+
+```
+```{r}
+nrow(kickstarter) * mean(is.na(kickstarter$location))
+
+```
+
+
+```{r}
+sum(is.na(kickstarter$location))
+```
+
+So what other tasks should I introduce as data cleaning?
+Parse dates
+Manipulate strings?
+Convert to factors?
+Mutate?
+Check for outliers? Or wait until EDA?
+```{r, eval=FALSE, include=FALSE}
+install.packages("outliers")
+```
+
+```{r, eval=FALSE, include=FALSE}
+outliers::outlier(kickstarter$pledged)
+
+```
+
+```{r}
+kickstarter %>%
+    summarise(max(pledged))
+```
+```{r, eval=FALSE, include=FALSE}
+outliers::rm.outlier(kickstarter$pledged) %>%
+    ggplot(kickstarter, aes(pledged)) + 
+    geom_histogram(bins = 30)
+```
+
+This should be done visually
+```{r}
+ggplot(kickstarter, aes(state, pledged)) + 
+    geom_boxplot()
+```
+```{r}
+kickstarter %>%
+    filter(pledged > 7500000) 
+```
+
+```{r}
+kickstarter %>%
+    arrange(desc(pledged))
+```
+
+```{r Grouped Summary}
+kickstarter %>%
+    group_by(state) %>%
+    summarise(n(), mean(pledged))
+```
+
+We should probably remove live entries since they are not complete.
+
+Since live would indicate a deadline of after 8/15/17, let's see if we can see how many there are, and compare to those with the live state.
+
+```{r}
+kickstarter %>%
+    filter(deadline >= ymd("2017-08-15")) %>%
+        group_by(state) %>%
+     summarise(n(), mean(pledged))
+
+```
+
+So some may have been suspended or cancelled, or also reached their goal before the data was scraped. But the vast majority are live. We could check that the other way as well, just to be sure we know what we're working with.
+
+```{r}
+kickstarter %>%
+    filter(deadline <= ymd("2017-08-15")) %>%
+        group_by(state) %>%
+     summarise(n(), mean(pledged))
+
+```
+
+
+Confirmed my suspicion that live records are just ones that haven't met their deadline as of the time they were scraped. We should remove them.
+
+```{r}
+169832-3573
+kickstarter <- kickstarter %>%
+    filter(state != "live")
+nrow(kickstarter)
+```
+
+Is the data tidy?
+Hadley's Definition of Tidy Data:
+1. Each variable forms a column. 
+2. Each observation forms a row. 
+3. Each type of observational unit forms a table
+
+Yes we are pretty much tidy. When i come back through here, I need to come up with (randomly construct) an untidy dataset, and perform some common operations on it.
+
+A little more cleaning I could do is remove some uneccesary columns to make things a little easier to see and work with. Let's revisit a couple things.
+```{r}
+head(kickstarter)
+```
+Some possible columns to remove:
+photo
+friends
+is_starred
+is_backing
+permissions
+
+A few need to be made to factors:
+disable_communication
+country
+currency
+currency_symbol
+currency_trailing_code
+staff_pick 
+is_starrable 
+spotlight 
+
+
+
+Let's make the factors real quickly
+```{r}
+kickstarter$state <- as.factor(kickstarter$state)
+kickstarter$disable_communication <- as.factor(kickstarter$disable_communication)
+kickstarter$country <- as.factor(kickstarter$country)
+kickstarter$currency <- as.factor(kickstarter$currency)
+kickstarter$currency_symbol <- as.factor(kickstarter$currency_symbol)
+kickstarter$currency_trailing_code <- as.factor(kickstarter$currency_trailing_code)
+kickstarter$staff_pick <- as.factor(kickstarter$staff_pick)
+kickstarter$is_starrable <- as.factor(kickstarter$is_starrable)
+kickstarter$spotlight <- as.factor(kickstarter$spotlight)
+
+```
+
+
+```{r}
+names(kickstarter)
+```
+
+```{r}
+summary(kickstarter)
+```
+Some possible columns to remove due to large numbers of NAs:
+photo
+friends
+is_starred
+is_backing
+permissions
+
+```{r}
+kickstarter <- kickstarter %>%
+    dplyr::select(-c(photo, friends, is_starred, is_backing, permissions))
+dim(kickstarter)
+```
+Let's also remove profile
+```{r}
+kickstarter <- kickstarter %>%
+    dplyr::select(-profile)
+dim(kickstarter)
+head(kickstarter)
+```
+
+And let's remove some NAs from goal:
+```{r remove NAs from goal}
+nrow(kickstarter)
+kickstarter <- kickstarter %>% 
+    filter(!is.na(goal))
+nrow(kickstarter)
+```
+
+
+https://www.kickstarter.com/discover/categories/art/digital%20art?ref=category_modal&sort=magic
+{"web":{"project":"https://www.kickstarter.com/projects/ithaqualabs/100-fantasy-portraits-for-oria-trail-the-game?ref=category_newest","rewards":"https://www.kickstarter.com/projects/ithaqualabs/100-fantasy-portraits-for-oria-trail-the-game/rewards"}}	
+
+Remove urls
+```{r}
+kickstarter <- kickstarter %>%
+    dplyr::select(-urls)
+dim(kickstarter)
+head(kickstarter)
+```
+
+And a few that could use some string manipulation:
+creator
+location
+category
+profile
+
+```{r}
+kickstarter %>%
+    dplyr::select(category)
+```
+{"urls":{"web":{"discover":"http://www.kickstarter.com/discover/categories/art/digital%20art"}},"color":16760235,"parent_id":1,"name":"Digital Art","id":21,"position":3,"slug":"art/digital art"}
+
+{"urls":{"web":{"discover":"http://www.kickstarter.com/discover/categories/art/illustration"}},"color":16760235,"parent_id":1,"name":"Illustration","id":22,"position":4,"slug":"art/illustration"}
+```{r}
+length(levels(as.factor(kickstarter$category)))
+```
+Let's experiment
+
+```{r, eval = FALSE, include=FALSE}
+string <- "aaaaaxbbbbbycccc"
+x <- str_locate(string, "x")
+y <- str_locate(string, "y")
+data.class(x)
+data.class(x[1,1])
+str_sub(string, (x[1,1]+1), (y[1,1]-1))
+```
+```{r}
+extract_category <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"name":"'
+    end <- '"id"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 8), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$category <- extract_category(kickstarter$category)
+
+```
+
+Extract creator
+{"urls":{"web":{"user":"https://www.kickstarter.com/profile/ithaqualabs"},"api":{"user":"https://api.kickstarter.com/v1/users/246410818?signature=1502949105.be71a5c8169617f9faeec39b384b715b0dcbbdcd"}},"is_registered":true,"name":"Christopher \\"Michael\\" Hall","id":246410818,"avatar":{"small":"https://ksr-ugc.imgix.net/assets/007/018/494/e96cc66ca639dfc9055df48505952104_original.jpg?w=160&h=160&fit=crop&v=1461428617&auto=format&q=92&s=947233770a463f383a6e02ce9de927ab","thumb":"https://ksr-ugc.imgix.net/assets/007/018/494/e96cc66ca639dfc9055df48505952104_original.jpg?w=40&h=40&fit=crop&v=1461428617&auto=format&q=92&s=2235a24568ec8aadb35373184933a347","medium":"https://ksr-ugc.imgix.net/assets/007/018/494/e96cc66ca639dfc9055df48505952104_original.jpg?w=160&h=160&fit=crop&v=1461428617&auto=format&q=92&s=947233770a463f383a6e02ce9de927ab"},"slug":"ithaqualabs"}
+
+```{r}
+extract_creator <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"name":"'
+    end <- '"id"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 8), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$creator <- extract_creator(kickstarter$creator)
+
+kickstarter %>%
+    dplyr::select(creator)
+```
+
+Extract location
+{"country":"US","urls":{"web":{"discover":"https://www.kickstarter.com/discover/places/atlanta-ga","location":"https://www.kickstarter.com/locations/atlanta-ga"},"api":{"nearby_projects":"https://api.kickstarter.com/v1/discover?signature=1502924597.cb3fbf5fbe9154ddf04d85e7be879e4403e3fd98&woe_id=2357024"}},"name":"Atlanta","displayable_name":"Atlanta, GA","short_name":"Atlanta, GA","id":2357024,"state":"GA","type":"Town","is_root":false,"slug":"atlanta-ga"}
+
+```{r}
+extract_location <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"displayable_name":"'
+    end <- '"short_name"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 20), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$location <- extract_location(kickstarter$location)
+
+kickstarter %>%
+    dplyr::select(location)
+```
+
+Extract profile - Nevermind, get rid of it!
+{"background_image_opacity":0.8,"should_show_feature_image_section":true,"link_text_color":null,"state_changed_at":1483170864,"blurb":null,"background_color":null,"project_id":2816416,"name":null,"feature_image_attributes":{"image_urls":{"default":"https://ksr-ugc.imgix.net/assets/015/025/634/778323e325e49e1cf47cebc49e420b00_original.jpg?crop=faces&w=1552&h=873&fit=crop&v=1483175120&auto=format&q=92&s=9dfd6c8242477cf82c8e8c03d0801a45","baseball_card":"https://ksr-ugc.imgix.net/assets/015/025/634/778323e325e49e1cf47cebc49e420b00_original.jpg?crop=faces&w=560&h=315&fit=crop&v=1483175120&auto=format&q=92&s=28ca75d75ac91e75cbbdcddfa2c6042e"}},"link_url":null,"show_feature_image":false,"id":2816416,"state":"inactive","text_color":null,"link_text":null,"link_background_color":null}
+
+```{r, eval=FALSE, include=FALSE}
+extract_profile <- function(string) {
+    output <- vector("character", length(string))
+    start <- '"displayable_name":"'
+    end <- '"short_name"'
+    for (i in seq_along(string)) {
+        loc_start <- str_locate(string[[i]], start) 
+        loc_end <- str_locate(string[[i]], end)
+        output[[i]] <- str_sub(string[[i]], 
+                               (loc_start[1,1] + 20), 
+                               (loc_end[1,1] - 3)
+                               )
+    }
+   output
+}
+kickstarter$profile <- extract_profile(kickstarter$profile)
+
+kickstarter %>%
+    dplyr::select(profile)
+```
+And now convert a couple of those recently extracted character strings to factors
+```{r}
+kickstarter$category <- as.factor(kickstarter$category)
+kickstarter$location <- as.factor(kickstarter$location)
+kickstarter$id <- as.character(kickstarter$id)
+summary(kickstarter)
+
+
+```
+
+
+
+```{r Re-check object size}
+format(object.size(kickstarter), units = "Mb")
+object.size(kickstarter)
+dim(kickstarter)
+```
+Thats a lot smaller! My goodness... There are 7 or so less columns, and some of them were shortened drastically, and I guess I deleted a few rows as well, but that's like a seventh as big as it was. Wow!
+
+So I want to run back through what I did in stage 1, which I feel I have now completed.
+A couple levels to focus on:
+Top level: I think I stuck with the basic activities that I started with, but I will verify that.
+Second level: I think they were all pretty straight forward, except for the cleaning part. I want to be sure and outline all of the things I did for cleaning so that I can generalize a little bit.
+And I want to be sure that I did in fact complete the other stages. I also want to see if there were any steps worth listing for any of those. Also, would anything have benefitted from a more formal walk through the iteration process?
+
+To begin: My initial goals for things to accomplish in Stage 1:
+Initial thoughts on what needs to be accomplished during this stage
+1. Ask a question
+2. Collect data
+3. Inspect the data
+4. Refine and sharpen the question (not really a distinct stop - encompassed in the iteration cycle)
+5. Clean and Tidy the data
+
+Inspect:
+head
+n_distinct
+dim
+str
+colnames/names
+summary
+object.size
+Plotted some dates
+Some grouped summaries
+
+Clean and Tidy:
+Converted Dates
+Characters to factors
+Check for and deal with missing data
+Explore and deal with outliers
+Remove unnecessary data (generalized from useless columns and live/ongoing cases)
+Manipulate character strings
+
+So I think that the inspect steps and the clean/tidy step could really benefit from a stated goal at the beginning. This would allow use of the iteration cycle and more clearly define the work to be done.
+
+Goal for Inspect: To develop an idea of the potential usefulness of the dataset and identify problems with the dataset.
+
+Goal for Clean and Tidy: To put the dataset into a useful format and fix problems with the dataset.
+
+I like it. I could revisit these on the next pass.
+
+So should I go with a different notebook for the next stage?
+Nah
+
+## Stage 2: Exploratory Data Analysis (EDA)
+
+So the focus of this stage will be two things: the process of exploring the data, and also the technical ability to do so. I would like to have a more in-depth process than just a list of graphs. This is from earlier:
+The purpose of EDA is to explore the variables, identify relationships, and generate ideas to test further.
+
+So what's the goal? To provide a definition of and goal for the EDA phase which will guide our analysis.
+-I will know if I can see objectives and a way forward.
+I would say that's a really good start...
+I'm going to go with that, and come back towards the end.
+
+So we have the following goals for this stage:
+1. Explore the variables
+2. Identify relationships
+3. Generate ideas to test further
+4. Develop a list of potential response (dependent) and predictor (independent) variables
+
+**My Process of EDA**
+<!-- Should be customized a bit -->
+From Signal and NUCI
+1. Variation within categories: Bar charts, dot plots (Ranking and part-to-whole relationships)
+2. Variation within measures: Histograms, frequency polygons, boxplots (single and multiple distributions)
+3. Variation through time: Line graphs
+4. Relationships among measures: Scatterplots, scatterplot matrices
+5. Relationships among categories: Visual crosstabs/small multiples with horizontal bar charts or scatterplots
+<!-- Could this replace the goals above as well? -->
+
+<!-- So I think I like the process compiled from Signal and NUCI a little better. I will need to customize it a bit -->
+Exploring single distributions
+Comparing multiple distributions
+Some part to whole and ranking
+Some time series, even though not particularly relevant for this project
+- though we could do success rate over time or something
+Then correlations, including facetting, multiple variables (setting and mapping) and smoothing
+
+I would also like to do just a few graphs in ggvis to learn some interaction. I think the graphs best suited to this would be scatterplots exploring correlations with multiple variables.
+
+So can we compare my original set of goals to the categories of tasks I just listed?
+Goals of EDA:
+1. Explore the variables
+2. Identify relationships
+3. Generate ideas to test further
+4. Develop a list of potential response (dependent) and predictor (independent) variables
+
+And the tasks:
+Exploring single distributions
+Comparing multiple distributions
+Some part to whole and ranking
+Some time series, even though not particularly relevant for this project
+- though we could do success rate over time or something
+Then correlations, including facetting, multiple variables (setting and mapping) and smoothing
+
+So I think that the goals section are great, while a little less specific.
+Then we move to the tasks, which guide you towards accomplishing the goals.
+All of this while employing the EDA specific iteration cycle. Sounds like a plan.
+
+In a narrow sense, the list of variables mentioned above is the physical outcome of this stage. Along with insights gained, its what we take from this stage to begin work on the next stage, building models.
+
+So the basic process for each graph will be similar to the more general iteration cycle:
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments, and repeat as necessary
+
+1. Begin with a question or goal, including what you hope to learn
+2. Build the graph
+3. Determine whether or not you answered the question, completed the goal, or learned what you hoped to learn. Record insights.
+4. Decide whether expectations should be altered or the graph should be modified.
+5. Make adjustments, and repeat as necessary
+
+Before the graph:
+Goal, question to be answered, or insight sought:
+Type of graph:
+Variables to be used:
+Geoms or layers to be used:
+```{r example of graphing process}
+
+```
+
+After the graph:
+Insights gained:
+Adjustments to be made (if any):
+
+<!-- I plan to move some of what I did below (converting the goal to usd_goal, etc) to Stage 1 -->
+
+<!-- I also plan to start over/redo whatever is left following the new proccess, and aldo using zoom instead of filtering, or maybe along with filtering -->
+
+So let's start by exploring the pledged variable, since it may be a good measure of success.
+
+Some quick summary stats:
+```{r}
+summary(kickstarter$pledged)
+```
+
+Goal, question to be answered, or insight sought: Is pledged the best measure of success for the kickstarter projects?
+Type of graph: histogram
+Variables to be used: pledged
+Geoms or layers to be used: histogram
+```{r}
+kickstarter %>%
+    filter(pledged < 20000) %>%
+    ggplot(aes(x = pledged)) + 
+    geom_histogram() 
+    
+```
+
+And after each graph: 
+Insights gained: The data is skewed very heavily to the right.
+Adjustments to be made (if any): Zoomed in by ignoring the larger values of pledged.
+
+I may now ignore values that equal zero
+```{r}
+kickstarter %>%
+    ggplot(aes(x = pledged)) + 
+    geom_histogram() + 
+    xlim(-1000, 20000)
+    
+```
+Adjustments: changed bin width to 1000.
+So we've learned that there are quite a few projects that received 0 funding (maybe 15k), and many more under a grand (50k). Thats a big chunk of our 169k entries. Once you also include under 2000 pledged (another 20k), you have over half of our entries.
+
+This raises a few more questions: what if we only looked at succesful projects, and can we build a table with bins (say 1000) with individual and cumulative sums of records?
+
+First question:Goal, question to be answered, or insight sought: What does the distribution look like if we only consider succesful projects?
+Type of graph: histogram
+Variables to be used: pledged, state = successful
+Geoms or layers to be used: histogram
+```{r}
+kickstarter %>%
+    filter(state == "successful") %>%
+    filter(pledged < 20000) %>%
+    filter(pledged > 0) %>%
+    ggplot(aes(x = pledged)) + 
+    geom_histogram() 
+    
+```
+
+And after each graph: 
+Insights gained: The data is skewed very heavily to the right.
+Adjustments to be made (if any): Zoomed in by ignoring the larger values of pledged.
+
+Before the graph:
+Goal, question to be answered, or insight sought: How does pledged vary by state?
+Type of graph: Bar
+Variables to be used: x = state, y = pledged
+Geoms or layers to be used: bar
+```{r bar plot of mean pledged by state}
+kickstarter %>% 
+    group_by(state) %>% 
+    summarise(mean(pledged)) 
+    
+    ggplot(kickstarter, aes(x = state, y = pledged)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+```
+
+After the graph: 
+Insights gained: No surprise that the successful projects had more pledged, interesting that canceled and suspended had more than failed projects. Could be worth exploring a little more, but since we'll never know why they were suspended, we may need to consider only comparing failed to successful.
+Adjustments to be made (if any): I'm curious how these look relative to their goal, not just in absolute dollars pledged.
+
+So let's create a variable for that: pledged / goal
+```{r creating a variable pledged_to_goal}
+kickstarter <- kickstarter %>% 
+    mutate(pledged_to_goal = (pledged / goal))
+summary(kickstarter)
+```
+
+Before we go any further, I think we should explore the currency exchange stuff. Looking at our variables, we have some interesting ones including pledged, country, currency, currency_symbol, static_usd_rate, and usd_pledged. The presence of both pledged and usd_pledged makes me think that pledged may be in the home currency. We could test this by plotting pledged v usd_pledged for records where currency equals usd (it should be equal), and then the same plot for those that arent usd (shouldn't be equal).
+
+
+Before the graph:
+Goal, question to be answered, or insight sought: Does pledged = usd_pledged when currency = usd?
+Type of graph: scatterplot
+Variables to be used: x = pledged, y = usd_pledged, filter usd only
+Geoms or layers to be used: point
+```{r exploring currency conversion - usd only}
+kickstarter %>% 
+    filter(currency == "USD") %>% 
+    ggplot(aes(pledged, usd_pledged)) + 
+    geom_point()
+```
+
+After the graph
+Insights gained: Looks like 100%
+Additional questions raised: Is it the same for everything other than usd?
+Adjustments to be made (if any): filter != USD
+
+
+Before the graph
+Goal, question to be answered, or insight sought: Does pledged = usd_pledged when currency != usd?
+Type of graph: scatterplot
+Variables to be used: x = pledged, y = usd_pledged, filter != usd 
+Geoms or layers to be used: point
+```{r exploring currency conversion, filter not equals usd}
+kickstarter %>% 
+    filter(currency != "USD") %>% 
+    ggplot(aes(pledged, usd_pledged)) + 
+    geom_point()
+```
+
+After the graph
+Insights gained: Pledged is definitely in home currency
+Additional questions raised: How to deal with currency differences?
+Adjustments to be made (if any): Since goal is only expressed in home currency, we could attempt to convert it, or we could rely on the ratio of pledged / goal as our measure. Converting everything would be more robust and versatile, but would be more work and more prone to error. I should be able to verify results though.
+
+Let's think through this: which variables would need to be converted?
+```{r}
+names(kickstarter)
+```
+
+goal might be the only one. Let's explore that static usd rate for a minute.
+
+Before the graph
+Goal, question to be answered, or insight sought: Determine if in all records where currency is USD, static usd rate == 1
+Type of graph: histogram, boxplot...
+Variables to be used: static usd rate, filter by currency
+Geoms or layers to be used: 
+```{r conversion rate when currency == USD}
+kickstarter %>% 
+    filter(currency == "USD") %>% 
+    ggplot(aes(static_usd_rate)) + 
+    geom_histogram()
+```
+
+After the graph
+Insights gained: Bingo. Exactly 1
+Additional questions raised: 
+Adjustments to be made (if any): I should be able to mutate(usd_goal = goal * static_usd_rate), right?
+
+```{r create usd_goal}
+kickstarter <- kickstarter %>% 
+    mutate(usd_goal = goal * static_usd_rate)
+summary(kickstarter)
+    
+```
+
+```{r creating a variable pledged_to_goal_usd}
+kickstarter <- kickstarter %>% 
+    mutate(pledged_to_goal_usd = (usd_pledged / usd_goal))
+summary(kickstarter)
+```
+Because they are both ratios, the conversion taking place shouldnt actually have changed anything from pledged_to_goal, and summary stats verify that. Let's confirm visually.
+
+Before the graph
+Goal, question to be answered, or insight sought: Are pledged_to_goal and pledged_to_goal_usd the same?
+Type of graph: scatterplot
+Variables to be used: pledged_to_goal and pledged_to_goal_usd
+Geoms or layers to be used: point
+```{r visual confirmation that pledged_to_goal and pledged_to_goal_usd are the same}
+kickstarter %>% 
+    ggplot(aes(pledged_to_goal, pledged_to_goal_usd)) + 
+    geom_point()
+```
+
+After the graph
+Insights gained: Bingo. Visual confirmation it is.
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+So let's revisit the plot of mean pledged by state, this time with our new pledged_to_goal variable.
+Before the graph:
+Goal, question to be answered, or insight sought: How does pledged_to_goal vary by state?
+Type of graph: Bar
+Variables to be used: x = state, y = pledged_to_goal
+Geoms or layers to be used: bar
+```{r bar plot of mean pledged by state}
+kickstarter %>% 
+    group_by(state) %>% 
+    summarise(mean(pledged_to_goal)) 
+    
+    ggplot(kickstarter, aes(x = state, y = pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+```
+
+After the graph: 
+Insights gained: Of course the entire range of failed has to be under 100% of the goal, and successful must be over. I'd like to look at the distribution of each of those. Interesting to note that on average, canceled and suspended are both just under 100%. Even more interesting is that on average, successful projects get around 700% of their goal. Is that due to some of the outliers we saw earlier?
+Additional questions raised: What do the distributions of each state look like? Are outliers the cause of the high (roughly 700%) mean for successful projects? How many projects just barely fail?
+Adjustments to be made (if any): 
+
+
+## 1. Variation within categories: Bar charts, dot plots (Ranking and part-to-whole relationships)
+
+Let's first get a plan for this. First, I'll simply look for categories to explore
+```{r categories to explore}
+summary(kickstarter)
+names(kickstarter)
+```
+state is obviously an important one.
+country could be interesting.
+category
+staff_pick and spotlight are both worth taking a look at.
+
+And we can break them down by looking at the variation across those categories in terms of the state, mean pledged_to_goal, size of the goal to begin with, backer_count, average pledged, 
+
+### Category: State
+
+So the most important categories we can observe are those in the state variable, as that is esentially what we are interested in. Let's look at mean pledged_to-goal by state. 
+
+Before the graph:
+Goal, question to be answered, or insight sought: How does pledged_to_goal vary by state?
+Type of graph: Bar
+Variables to be used: x = state, y = pledged_to_goal
+Geoms or layers to be used: bar
+```{r bar plot of mean pledged by state}
+kickstarter %>% 
+    group_by(state) %>% 
+    summarise(mean(pledged_to_goal)) 
+    
+    ggplot(kickstarter, aes(x = state, y = pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+```
+
+After the graph: 
+Insights gained: Of course the entire range of failed has to be under 100% of the goal, and successful must be over. I'd like to look at the distribution of each of those. Interesting to note that on average, canceled and suspended are both just under 100%. Even more interesting is that on average, successful projects get around 700% of their goal. Is that due to some of the outliers we saw earlier?
+Additional questions raised: What do the distributions of each state look like? Are outliers the cause of the high (roughly 700%) mean for successful projects? How many projects just barely fail?
+Adjustments to be made (if any): Its not entirely useful because we know the range that each has to be in. I'm more concerned about the presence of the suspended and cancelled projects. Why were they suspended or cancelled? What does that tell us about their success, or lack thereof? Should I ignore them or lump them in with the failed projects?
+
+Before the graph
+Goal, question to be answered, or insight sought: What proportions of the data fall into each of the states?
+Type of graph: Bar
+Variables to be used: state, count of state
+Geoms or layers to be used: bar
+```{r cases by state}
+ggplot(kickstarter, aes(state)) + 
+    geom_bar()
+summary(kickstarter$state)
+```
+
+After the graph
+Insights gained: Very few suspended, a handful (~12000) canceled, and then roughly half and half between failed and successful
+Additional questions raised: Should I lump suspended in with canceled?
+Adjustments to be made (if any): Some quick googling about the nature of suspended projects leads me to believe that something was out of the ordinary (supposedly outside the kickstarter rule) about projects that were suspended. That makes me think that the alleged cheating could have led to some kind of unfair advantage and also that their suspension has no real bearing on their success or likelihood thereof. It appears that suspensions are done by kickstarter, while cancellations are done by the creator. I assume that most cancellations were doomed to fail anyway. I'm going to explore the distribution of canceled projects.
+
+Before the graph
+Goal, question to be answered, or insight sought: Are most cancellations near their point of funding?
+Type of graph: histogram
+Variables to be used: pledged_to_goal
+Geoms or layers to be used: histogram
+```{r boxplot of canceled}
+kickstarter %>% 
+    filter(state == "canceled", pledged_to_goal >= 1) %>% 
+    ggplot(aes(state, pledged_to_goal)) + 
+    geom_boxplot() 
+```
+
+After the graph
+Insights gained: Many of the canceled projects were funded beyond their goal. Some were wildly succesful otherwise.
+Additional questions raised: What does canceled really mean?
+Adjustments to be made (if any): Confirm that canceled projects could have been funded to or beyond their goal before removing the variable
+
+```{r confirming success of canceled projects}
+kickstarter %>% 
+    filter(state == "canceled", pledged_to_goal >= 1) 
+```
+
+Important insight: 183 out of around 11000 canceled projects had met their goal!
+What does this tell us about the usefulness of the canceled projects? further uncertainty is the main thing, since we simply don't know why they were canceled. And we certainly can't lump them in with the failed projects, because they aren't all failed! I think we have to exclude the whole category, along with those suspended.
+
+Remove canceled and suspended projects. I'm going to preserve a copy of the dataset with them intact, since there may be some gray area here.
+```{r removing canceled and failed projects}
+ks <- kickstarter %>% 
+    filter(state == "successful" | state == "failed")
+# to confirm 
+kickstarter %>%  
+    filter(state == "successful" | state == "failed")
+nrow(ks)
+summary(ks$state)
+```
+
+So let's break down state by other factors.
+
+Before the graph
+Goal, question to be answered, or insight sought: Are successful projects bigger or smaller on average?
+Type of graph: bar
+Variables to be used: state, usd_goal
+Geoms or layers to be used: bar
+```{r size of project by state}
+ks %>% 
+    ggplot(aes(x = state, y = usd_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+ks %>% 
+    group_by(state) %>% 
+    summarise(mean(usd_goal))
+```
+
+After the graph
+Insights gained: Wow. A striking difference in the size of the original goals. Successful projects seem to be MUCH smaller projects. Makes sense; smaller projects have more doable goals and are therefore more likely to get funded. The flip side would be to think (incorrectly) that larger projects could be taken more seriously or may have more resources or better ideas to begin with. Smaller projects it is. And by a wide margin.
+Additional questions raised: Could smart project creators use the strategy of setting a smaller goal than they really need, leading to a higher success rate since funding is all or nothing? Is there a negative correlation to either pledged_to_goal or usd_pledged?
+Adjustments to be made (if any): 
+
+Before the graph
+Goal, question to be answered, or insight sought: This one is a preliminary graph, leading into the next one: average pledged per backer. Do successful projects have more backers? I assume they do...
+Type of graph: bar
+Variables to be used: state, backers
+Geoms or layers to be used: bar
+```{r backers by state}
+ks %>% 
+    ggplot(aes(x = state, y = backers_count)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+ks %>% 
+    group_by(state) %>% 
+    summarise(mean(backers_count))
+```
+
+After the graph
+Insights gained: No surprises here...
+Additional questions raised: Is it more about the number of backers or the the size of the pledge?
+Adjustments to be made (if any): usd_pledged/backers_count instead of backers count
+
+Before the graph
+Goal, question to be answered, or insight sought: Is it more about the number of backers or the the size of the pledge?
+Type of graph: bar
+Variables to be used: state, usd_pledged/backers_count
+Geoms or layers to be used: bar
+```{r average pledge by state}
+ks %>% 
+    ggplot(aes(x = state, y = (usd_pledged / backers_count))) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+ks %>% 
+    group_by(state) %>% 
+    summarise(mean(usd_pledged / backers_count, na.rm = TRUE))
+```
+
+After the graph
+Insights gained: So because we can't divide by zero, all records with 0 backers were removed. But again no surprises: the successful projects have bigger pledges (in addition to more of them). There seems to be a wider margin when looking backers_count than the average pledge. Could mean its more about quantity than size of plegde, but that would take more investigation
+Additional questions raised: Is there a correlation between size of pledge and pledged to goal (when controlling for other factors, of course)? Is there an option to set the affect the minimum size of pledge, and could that be a useful strategy?
+Adjustments to be made (if any): 
+
+
+
+
+So we've explored the state category. Let's look at a few others.
+```{r looking for other interesting factors}
+summary(ks)
+```
+
+### Category: Country
+
+Let's rank total projects by country
+Before the graph
+Goal, question to be answered, or insight sought: Get a feel where the projects come from
+Type of graph: bar (ranking)
+Variables to be used: country
+Geoms or layers to be used: bar
+```{r ranking total projects by country}
+ks %>% 
+    ggplot(aes(fct_infreq(country))) + 
+    geom_bar()
+ks %>% 
+    group_by(country) %>% 
+    summarise(n())
+```
+
+After the graph
+Insights gained: The vast majority of projects are in the US, with a handful also coming from GB, CA, and AU. Primarily developed, Western countries.
+Additional questions raised: Does success rate differ between countries?
+Adjustments to be made (if any): position = dodge
+
+Before the graph
+Goal, question to be answered, or insight sought: Is there an obvious discrepancy in trend between the most common countries?
+Type of graph: dodged bar
+Variables to be used: country, state
+Geoms or layers to be used: bar, position = dodge
+```{r success rate by country}
+ks %>% 
+    filter(country == c("US", "GB", "CA", "AU")) %>% 
+    ggplot(aes(x = fct_infreq(country), fill = state)) + 
+    geom_bar(position = "dodge")
+
+```
+
+After the graph
+Insights gained: The US appears to have slightly more successes than failures, while the other countries have slightly more failures
+Additional questions raised: Is this difference signigicant?
+Adjustments to be made (if any): Compare the US success rate to all other countries combined
+
+Let's try to collapse all the other levels of country into one
+```{r collapse all contries to one level, include=FALSE}
+ks %>% 
+    mutate(country2 = as.factor(if_else(country == "US", "US", "other")))
+
+```
+
+Before the graph
+Goal, question to be answered, or insight sought: Is the success rate for the US differnet from all other countries combined?
+Type of graph: dodged bar, frequency table
+Variables to be used: country (collapsed), state
+Geoms or layers to be used: bar, position = dodge
+```{r success rate by country, US vs all other}
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    ggplot(aes(x = fct_infreq(country), fill = state)) + 
+    geom_bar(position = "dodge")
+
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    count(country, state) %>% 
+    mutate(prop = prop.table(n)) 
+```
+
+After the graph
+Insights gained: The success rate is visibly higher in the us than the aggregate of other countries
+Additional questions raised: What causes this? Could is have to do with more of the backers coming from the US? Could people in the US have more experience with this sort of thing or have access to more resources related to kicsktarter?
+Adjustments to be made (if any): I could also look at other variables for the y axis, such as...
+
+So what could I use?
+```{r column names}
+names(ks)
+```
+
+I could look at the mean pledged to goal. I could look at the size of the projects. This US to everyone else thing is kind of interesting.
+
+Before the graph
+Goal, question to be answered, or insight sought: In addition to being more having a higher success ratio, does the US also have as clear of an advantage when it comes to pledged_to_goal ratios? I would assume a similar pattern, but check here for either confirmation or to see if perhaps something unexpected is going on.
+Type of graph: bar, frequency table
+Variables to be used: country, pledged to goal
+Geoms or layers to be used: bar, 
+```{r success rate by country, US vs all other}
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    ggplot(aes(x = fct_inorder(country), y = pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    group_by(country) %>% 
+    summarise(mean(pledged_to_goal, na.rm = TRUE))
+
+```
+After the graph
+Insights gained: The US is even more dominant in terms of the pledged_to_goal ratio over other countries than comparing the binary success or failure alone. Also interesting that in other countries, while more projects fail than succeed, on average, the are pledged more than their goals.
+Additional questions raised: Do any other countries have a high success rate (as measured either way?) Is the discrepancy here just due to outliers?
+Adjustments to be made (if any): 
+
+Before the graph
+Goal, question to be answered, or insight sought: Do any other countries have positive success rates?
+Type of graph: dodged bar 
+Variables to be used: country, state
+Geoms or layers to be used: bar
+```{r success rate, ordered}
+ks %>% 
+    count(country, state) %>% 
+    mutate(prop = prop.table(n)) %>% 
+    filter(state == "successful") %>% 
+    arrange(desc(prop)) %>% 
+    ggplot(aes(x = fct_inorder(country), y = prop)) + 
+    geom_bar(stat = "identity") 
+
+ks %>% 
+    count(country, state) %>% 
+    mutate(prop = prop.table(n)) %>% 
+    filter(state == "successful") %>% 
+    arrange(desc(prop))
+```
+
+After the graph
+Insights gained: HK has a success rate of right at 50%, but no one else has a positive ratio.
+Additional questions raised: Back to the outlier question from above.
+Adjustments to be made (if any): 
+
+First, let's determine what constitutes an outlier
+Before the graph
+Goal, question to be answered, or insight sought: What constitutes an outlier in US pledged to goal
+Type of graph: boxplot
+Variables to be used: country, pledged to goal
+Geoms or layers to be used: box plot
+```{r finding outliers in pledged to goal}
+ks %>% 
+    filter(country == "US") %>% 
+    ggplot(aes(country, pledged_to_goal)) + 
+    geom_boxplot()
+
+ks %>% 
+    filter(pledged_to_goal > (quantile(pledged_to_goal, probs = .75, na.rm = TRUE) +     (1.5 * IQR(pledged_to_goal, na.rm = TRUE))))
+
+ks %>% 
+    filter(pledged_to_goal < (quantile(pledged_to_goal, probs = .75, na.rm = TRUE) +     (1.5 * IQR(pledged_to_goal, na.rm = TRUE)))) %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    ggplot(aes(x = fct_inorder(country), y = pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+ks %>% 
+    filter(pledged_to_goal < (quantile(pledged_to_goal, probs = .75, na.rm = TRUE) +     (1.5 * IQR(pledged_to_goal, na.rm = TRUE)))) %>% 
+    ggplot(aes(x = country, y = pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean) 
+```
+
+After the graph
+Insights gained: So the first graph, a boxplot, is just a quick look at some outliers. The second command filters out any values that are greater than 1.5x the interquartile range (IQR) away from the IQR, and this table shows those values. Removing those values and looking at US v all other countries, note that the pledged_to_goal ratio is MUCH lower (lower than 1 on average). The next graph which does not lump all other countries shows similar trends. We should NOT read too much into this, because removing the most successful projects could only lower that ratio. Also, we did not remove any of the cases on the other end, because with so many receiving 0 funding, I wouldn't really call them outliers. Additionally, saying that 8000 out of 160,000 records are outliers may be misleading. That says more about the shape of the distribution than their status as actual outliers. Any definition of outliers in this case would be arbitrary and subjective, and therefore limited in its usefulness. The insight here is that the top 5 percent of records contribute the majority of the overall success.
+Additional questions raised: What percentage of the total dollars funded go to the top performers?
+Adjustments to be made (if any): 
+
+We'll explore the distributions of this and other variables later, but first let's revisit one thing: how many projects received no pledges at all?
+```{r projects that received no pledging at all}
+ks %>% 
+    filter(usd_pledged == 0)
+
+(ks %>% 
+    filter(usd_pledged == 0) %>% 
+    nrow()) / 
+(ks %>% 
+    nrow())
+
+(ks %>% 
+    filter(pledged_to_goal > (quantile(pledged_to_goal, probs = .75, na.rm = TRUE) +     (1.5 * IQR(pledged_to_goal, na.rm = TRUE)))) %>% 
+        nrow()) / 
+(ks %>% 
+    nrow())
+
+```
+
+Answer: 17000 projects received no funding at all. That's over 11% of our total cases, compared to just over 8000 (5%) that we removed as outliers on the high end for that last graph. We could continue to explore what constitutes an outlier, but I don't think its particularly useful at this point.
+
+Before the graph
+Goal, question to be answered, or insight sought: Do projects in the US tend to be bigger or smaller?
+Type of graph: Bar
+Variables to be used: country, usd_goal
+Geoms or layers to be used: bar
+```{r size of goal by country}
+# Plot of US v all other countries
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    ggplot(aes(x = fct_inorder(country), y = usd_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+# Plot of all countries
+ks %>% 
+    ggplot(aes(x = country, y = usd_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean) 
+
+# Table of US v all other countries
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    group_by(country) %>% 
+    summarise(mean(usd_goal))
+# Table of all countries
+ks %>% 
+    group_by(country) %>% 
+    summarise(mean(usd_goal))
+
+# US v all other, exclude China (plot)
+ks %>% 
+    filter(country != "CH") %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    ggplot(aes(x = fct_inorder(country), y = usd_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+# US v all other, exclude China (table)
+ks %>% 
+    filter(country != "CH") %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    group_by(country) %>% 
+    summarise(mean(usd_goal))
+
+```
+
+After the graph
+Insights gained: China is an extreme outlier with a very high average goal, and the US is on the very low end. Given the US's high success rate, this gives some credit to the idea that lower goals may lead to higher success.
+Additional questions raised: This graph views success as binary; but how does goal size correlate to actual dollars recieved (which is always 0 for failed projects).
+Adjustments to be made (if any): 
+
+Before the graph
+Goal, question to be answered, or insight sought: How does the average pledge compare across countries?
+Type of graph: bar
+Variables to be used: country, usd_pledged / backers_count
+Geoms or layers to be used: bar
+```{r average pledge by country}
+# average pledged size by country (plot)
+ks %>% 
+    ggplot(aes(x = fct_infreq(country), y = (usd_pledged / backers_count))) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+# Average pledged size by country (US v all others) (plot)
+ks %>% 
+    mutate(country = as.factor(if_else(country == "US", "US", "other"))) %>% 
+    ggplot(aes(x = fct_infreq(country), y = (usd_pledged / backers_count))) + 
+    geom_bar(stat = "summary_bin", fun.y = mean)
+
+# Average pledge size by country (table)
+ks %>% 
+    group_by(country) %>% 
+    summarise(mean_pledge = mean((usd_pledged / backers_count), na.rm = TRUE)) %>% 
+    arrange(desc(mean_pledge))
+```
+
+After the graph
+Insights gained: Hong Kong, with the 2nd best success rate, has the highest average pledge size. China, with the highest initial goal, has the 2nd highest pledge size. The us ranks 10th, roughly top third, and its average is similar to the average of the rest of the world.
+Additional questions raised: Do any of the relationships mentioned speak to correlations to each other, or to the overall success?
+Adjustments to be made (if any): 
+
+### Category: Category
+
+A new category, and its called category.
+```{r number and names of category}
+length(levels(as.factor(ks$category)))
+levels(as.factor(ks$category))
+```
+
+That's a lotta categories. We may have to focus on the best and worst performers.
+
+Before the graph
+Goal, question to be answered, or insight sought: What categories are the best performers?
+Type of graph: bar
+Variables to be used: category, success rate
+Geoms or layers to be used: bar
+```{r success rate by category}
+# success rate by category (plot)
+ks %>% 
+    count(category, state) %>% 
+    mutate(prop = prop.table(n)) %>% 
+    filter(state == "successful") %>% 
+    arrange(desc(prop)) %>% 
+    ggplot(aes(x = fct_inorder(category), y = prop)) + 
+    geom_bar(stat = "identity") 
+
+# success rate by category (table) Descending
+ks %>% 
+    count(category, state) %>% 
+    mutate(prop = prop.table(n)) %>% 
+    filter(state == "successful") %>% 
+    arrange(desc(prop)) 
+
+# success rate by category (table) Ascending
+ks %>% 
+    count(category, state) %>% 
+    mutate(prop = prop.table(n)) %>% 
+    filter(state == "successful") %>% 
+    arrange(prop)
+
+```
+
+
+After the graph
+Insights gained: There are SIX categories that have 100% success rates in this data! That's wild! I guess we know where we should be looking. 
+Additional questions raised: Is our data an accurate representation here? Those aren't small sample sizes... Is there a bias based on the culture around which the whole kickstarter was built on or grew around?
+Adjustments to be made (if any): 
+
+Before the graph
+Goal, question to be answered, or insight sought: Are there any categories that stand out by our other measure of success, pledged_to_goal?
+Type of graph: bar, table
+Variables to be used: category, pledged_to_goal
+Geoms or layers to be used: bar
+```{r pledged_to_goal by catgory}
+# 
+ks %>% 
+    group_by(category) %>% 
+    summarise(n(), 
+              mean_pledged_to_goal = mean(pledged_to_goal), 
+              median_pledged_to_goal = median(pledged_to_goal)) %>% 
+    arrange(desc(mean_pledged_to_goal))
+
+ks %>% 
+    group_by(category) %>% 
+    summarise(n(), 
+              mean_pledged_to_goal = mean(pledged_to_goal), 
+              median_pledged_to_goal = median(pledged_to_goal)) %>% 
+    arrange(mean_pledged_to_goal)
+
+ks %>% 
+    group_by(category) %>% 
+    summarise(mean_pledged_to_goal = mean(pledged_to_goal)) %>% 
+    arrange(desc(mean_pledged_to_goal)) %>% 
+    ggplot(aes(x = fct_inorder(category), y = mean_pledged_to_goal)) + 
+    geom_bar(stat = "identity")
+```
+
+After the graph
+Insights gained: We have several categories that seem to have done especially well, and then some that definitely have not done very well. Some categories seem to do much better than others. 
+Additional questions raised: Why do some type of games do so much better than others (video v mobile)?
+Adjustments to be made (if any): 
+
+
+Before the graph
+Goal, question to be answered, or insight sought: Do some categories tend to favor larger or smaller goals?
+Type of graph: bar
+Variables to be used: usd_goal, category
+Geoms or layers to be used: bar
+```{r size of goal by category}
+ks %>% 
+    group_by(category) %>% 
+    summarise(n(), 
+              mean_usd_goal = mean(usd_goal), 
+              mean_pledged_to_goal = mean(pledged_to_goal),
+              median_pledged_to_goal = median(pledged_to_goal)) %>% 
+    arrange(desc(mean_usd_goal))
+
+ks %>% 
+    group_by(category) %>% 
+    summarise(n(), 
+              mean_usd_goal = mean(usd_goal), 
+              mean_pledged_to_goal = mean(pledged_to_goal), 
+              median_pledged_to_goal = median(pledged_to_goal)) %>% 
+    arrange(mean_usd_goal)
+
+ks %>% 
+    group_by(category) %>% 
+    summarise(mean_usd_goal = mean(usd_goal)) %>% 
+    arrange(desc(mean_usd_goal)) %>% 
+    ggplot(aes(x = fct_inorder(category), y = mean_usd_goal)) + 
+    geom_bar(stat = "identity")    
+
+
+```
+
+After the graph
+Insights gained: Not suprisingly, Space Exploration is expensive (though not as expensive as Movie Theaters). And on the flip side, Crocheting is not that expensive
+Additional questions raised: How successful are these categories on the extremes?
+Adjustments to be made (if any): Add pledged to goal to display success rate
+
+### Category: staff_pick
+
+Before the graph
+Goal, question to be answered, or insight sought: Any significance to staff pick?
+Type of graph: bar
+Variables to be used: staff_pick, mean/median pledged_to_goal
+Geoms or layers to be used: bar
+```{r pledged to goal by staff pick}
+ks %>% 
+    ggplot(aes(staff_pick, pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = median)
+```
+
+After the graph
+Insights gained: Seems to be a pretty significant difference...
+Additional questions raised: How do they decide what to pick?
+Adjustments to be made (if any): Does size of goal differ?
+
+Before the graph
+Goal, question to be answered, or insight sought: Does the staff tend to pick bigger or smaller projects?
+Type of graph: bar
+Variables to be used: staff pick, mean/median goal size
+Geoms or layers to be used: bar
+```{r goal size by staff pick}
+ks %>% 
+    ggplot(aes(staff_pick, usd_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = median)
+
+```
+
+After the graph
+Insights gained: Looks like the staff tends to pick larger projects
+Additional questions raised: What other differences?
+Adjustments to be made (if any): 
+
+
+### Category: spotlight
+
+Before the graph
+Goal, question to be answered, or insight sought: Any significance to spotlight?
+Type of graph: bar
+Variables to be used: spotlight, mean/median pledged_to_goal
+Geoms or layers to be used: bar
+```{r pledged to goal by spotlight}
+ks %>% 
+    ggplot(aes(spotlight, pledged_to_goal)) + 
+    geom_bar(stat = "summary_bin", fun.y = median)
+
+ks %>% 
+    group_by(spotlight) %>% 
+    summarize(n(),
+              mean_pledged_to_goal = mean(pledged_to_goal), 
+              median_pledged_to_goal = median(pledged_to_goal)) 
+
+ks %>% 
+    group_by(state) %>% 
+    summarize(n(),
+              mean_pledged_to_goal = mean(pledged_to_goal), 
+              median_pledged_to_goal = median(pledged_to_goal)) 
+
+ks %>% 
+    group_by(spotlight, state) %>% 
+    summarise(n())
+```
+
+After the graph
+Insights gained: Seems to be a pretty significant difference... Believe it or not, under 50% of projects are spotlighted, but it seems to almost mean the same thing as state.
+Additional questions raised: What determines the spotlight? Are there really any that arent spotlighted? Does it mean the same thing as state?
+Adjustments to be made (if any): Does size of goal differ? Table to check the n's of each
+Turns out, it is the same as state... Moving on.
+
+### Category: creator
+Before the graph
+Goal, question to be answered, or insight sought: Any creators have especially high numbers of projects?
+Type of graph: bar
+Variables to be used: creator, projects (!= 1)
+Geoms or layers to be used: bar
+
+```{r creators}
+
+ks %>% 
+    group_by(creator) %>% 
+    summarise(creator_count = n(),
+              success_rate = mean(as.logical(spotlight)),
+              mean_pledged_to_goal = mean(pledged_to_goal), 
+              median_pledged_to_goal = median(pledged_to_goal)) %>% 
+    filter(creator_count > 10) %>% 
+    arrange(desc(creator_count))
+
+
+
+```
+
+After the graph
+Insights gained: Because many of the "categories" of creator are simply groups of people with the same first name, those arent particularly useful. Since, I can't think of an easy way to filter them out, (or maybe I could require a space?) I'll just ignore them. It appears that some creators are very successful. I think mean is more useful than median because what we can consider outliers could be huge contributors to an individuals strategy and overall success. Looks like some people/groups have some pretty impressive portfolios.
+Additional questions raised: 
+Adjustments to be made (if any): Look at success rate
+
+
+## 2. Variation within measures: Histograms, frequency polygons, boxplots (single and multiple distributions)
+
+```{r variable names}
+summary(ks)
+```
+
+So what distributions do we need to explore?
+usd_goal
+usd_pledged
+backers_count
+pledged_to_goal
+
+And by what categories do we need to break them down?
+state, obviously
+country
+staff_pick
+category
+
+```{r summary_table function, eval=FALSE, include=FALSE}
+
+summary_table <- function(dataset, variable) {
+    dataset %>% 
+        summarise( 
+          min = min(variable), 
+          q1 = quantile(variable, .25),
+          median = median(variable), 
+          mean = mean(variable), 
+          q3 = quantile(variable, .75),
+          max = max(variable),
+          range = max(variable) - min(variable),
+          sd = sd(variable), 
+          variance = var(variable))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+# Need to refer to lazy/standard evaluation article (bookmarked)
+# In the meantime, run a group_by %>% before the function
+summary_table_grouped <- function(dataset, variable, groupby) {
+    variable <- as.name(variable)
+    groupby <- as.name(groupby)
+    dataset %>% 
+        group_by(groupby) %>% 
+        summarise( 
+          min = min(variable), 
+          q1 = quantile(variable, .25),
+          median = median(variable), 
+          mean = mean(variable), 
+          q3 = quantile(variable, .75),
+          max = max(variable),
+          range = max(variable) - min(variable),
+          sd = sd(variable), 
+          variance = var(variable))
+}
+
+
+
+```
+
+Before the graph
+Goal, question to be answered, or insight sought: What can we learn about the distribution of usd_goal?
+Type of graph: histogram
+Variables to be used: usd_goal
+Geoms or layers to be used: histogram
+```{r}
+# ks %>% 
+#     group_by(state) %>% 
+#     summary_table(ks$usd_goal)
+
+ks %>% 
+ggplot(aes(usd_goal)) + 
+    geom_histogram() + 
+    xlim(c(0, 50000))
+
+```
+
+After the graph
+Insights gained: Skewed to the right
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+<!-- I shoudl redo the before/after graph questions for the distributions (after running through the distribution analysis chapter in NUCI) -->
+
+The Goal of Distribution Analysis:
+To gain an understanding of the distribution...
+<!-- Needs work -->
+
+Questions to ask about the shape of a distribution:
+-Important to investigate and further understand anything unusual or interesting. Ask "why?"
+1. Curved or flat?
+2. If curved, upward or downward?
+3. If curved upward, single or multiple peaked?
+4. If single peaked, symmetrical or skewed?
+5. Concentrations?
+6. Gaps?
+
+My primary iteration cycle should guide the more specific process.
+Iteration Cycle
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments, and repeat as necessary
+
+1. The goal of single distribution analysis is to gain insight into the distribution itself.
+-I define success as improvement in my overall understanding of the distribution. Therefore, I begin with a brief description, possibly accompanied by a quick sketch, of what I currently know about or expect from the distribution.
+2. I create a table including some useful summary statistics and at least one graph of the distribution.
+3. I compare the summary statistics and the visualization of the distribution to my initial expectations.
+4. Anywhere my expectations differ significantly from what I learn about the distribution, I seek to find the reason for the discrepancy.
+5. I create additional visualizations if these questions require further exploration (repeat the process with an altered focus).
+
+
+Therefore, my process for distribution analysis is as follows:
+
+Before the graph:
+Distribution to be analysed: 
+What I know about or expect from the distribution: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r example distribution analysis, eval=FALSE}
+# Summary Table
+# summary_table()
+
+# Histogram
+ks %>% 
+    ggplot(aes()) + 
+    geom_histogram()
+    
+# Boxplot
+ks %>% 
+    ggplot(aes()) + 
+    geom_boxplot()
+```
+After the graph:
+How does the visualization compare to my expectations? 
+Additional questions raised: 
+How do the summary statistics compare to my expectations? 
+How do the summary statistics compare to the visualization? 
+Adjustments to be made (if any): 
+
+Love that. I think this will be great for exploring single distributions. Might not be ideal for comparing multiple distributions. Should I generalize to include analysis of multiple distributions, or should I create a separate template?
+First question to answer: What is the main goal of analysis of multiple distributions? To gain insight into how distributions vary across other variables.
+-So its more about the comparison than about the distribution(s) themselves.
+So let's adapt, and just see how much I change:
+
+1. The goal of multiple distribution analysis is to compare distibutions gain insight into the similarities and differences.
+-I define success as improvement in my overall understanding of the similarities and differences. Therefore, I begin with a brief description, possibly accompanied by a quick sketch, of what I currently know about or expect from the comparison of the distributions.
+2. I create a table including some useful summary statistics for each distribution and at least one graph of the distributions.
+3. I compare the summary statistics and the visualization of the distributions to my initial expectations.
+4. Anywhere my expectations differ significantly from what I learn about the comparison of the distributions, I seek to find the reason for the discrepancy.
+5. I create additional visualizations if these questions require further exploration (repeat the process with an altered focus).
+
+
+Therefore, my process for distribution analysis is as follows:
+
+Before the graph:
+Distribution(s) to be analysed/compared: 
+What I know about or expect from the distribution(s): 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r example distribution analysis, eval=FALSE}
+# Summary Table
+summary_table()
+
+# Graph 1
+ks %>% 
+    ggplot(aes()) + 
+
+        
+# Graph 2
+# ks %>% 
+#     ggplot(aes()) + 
+
+```
+After the graph:
+How does the visualization compare to my expectations? 
+Additional questions raised: 
+How do the summary statistics compare to my expectations? 
+How do the summary statistics compare to the visualization? 
+Adjustments to be made (if any): 
+
+Takeaways:
+I only had to change a few words in the iteration cycle. I might be able to use a couple -or- statements to generalize, but since the actual before/after stuff stayed so similar, I'm not sure theres much of a reason to generalize the iteration cycle. I could simply show both and hilight the changes.
+
+
+
+So let's start somewhat fresh, with a revamped process.
+
+### Distribution of usd_pledged
+Before the graph:
+Distribution(s) to be analysed/compared: usd_pledged
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I expect there to be a large concentration near 0, and outliers extending to the millions. Higly skewed to the right.
+Additional variables to be used: 
+Geom(s) to be used: histogram
+```{r distribution analysis of usd_pledged}
+# Summary Table
+# summary_table(ks, ks$usd_pledged)
+
+# Graph 1
+ks %>% 
+    ggplot(aes(usd_pledged)) + 
+    geom_histogram() + 
+    xlim(c(NA, 250))
+
+# What percentage of records have usd_pledged = 0?
+(ks %>% 
+         filter(usd_pledged == 0) %>% 
+         nrow()) / (ks %>% 
+        nrow()) 
+    
+
+```
+After the graph:
+How does the visualization compare to my expectations, including spread, center, shape and outliers: Even more concentrated around 0 than I expected
+Additional questions raised: How many records/what percentage are 0 for usd_pledged?
+How do the summary statistics compare to my expectations: Surprising that because of outliers, the third quartile is about half the mean.
+How do the summary statistics compare to the visualization: They align: outliers dominate
+Adjustments to be made (if any): Zoom in. A lot. And the shape never really changes.
+
+Questions to ask about the shape of a distribution:
+-Important to investigate and further understand anything unusual or interesting. Ask "why?"
+1. Curved or flat? curved
+2. If curved, upward or downward? downward (to the right)
+3. If curved upward, single or multiple peaked? single
+4. If single peaked, symmetrical or skewed? skewed to the right
+5. Concentrations? around 0
+6. Gaps? Around the extreme outliers.
+
+### usd_pledged by state
+Before the graph:
+Distribution(s) to be analysed/compared: usd pledged by state
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I would certainly expect successful ones to have the higher center and be skewed to the right. I would expect the failed projects to be concentrated around 0
+Additional variables to be used: state
+Geom(s) to be used: box plot, frequency polygon
+```{r distribution analysis by state}
+# Summary Table, not working when grouped
+# ks %>% 
+#     group_by(state) %>% 
+#     summary_table(ks$usd_pledged)
+
+# Graph 1
+ks %>% 
+    ggplot(aes(state, usd_pledged)) + 
+    geom_boxplot() 
+        
+# Graph 2
+ks %>% 
+    ggplot(aes(usd_pledged, color = state)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 20000))
+
+```
+After the graph:
+How does the visualization compare to my expectations, including spread, center, shape and outliers: Obviously the failed projects are clustered around 0, and the successful projects are skewed heavily to the right.
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): Zoom in
+
+### usd_pledged by country
+
+Before the graph:
+Distribution(s) to be analysed/compared: usd_pledged by country
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: the outliers will still be there, but probably mostly in the us. Otherwise, I expect them to be similar
+Additional variables to be used: country
+Geom(s) to be used: freq poly
+```{r distribution analysis usd_pledged by country}
+
+# Graph 1
+ks %>% 
+    ggplot(aes(usd_pledged, color = country)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 50000))
+
+        
+# Graph 2
+ks %>% 
+    filter(country != "US") %>% 
+    ggplot(aes(usd_pledged, color = country)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 50000))
+
+```
+After the graph:
+How does the visualization compare to my expectations, including spread, center, shape and outliers: The number of cases in each country will of course affect the height of each graph. So we're essentially looking at a graph of how many projects come from each country. The shape is similar from each, at least as best we can tell from this graph.
+Additional questions raised: Is there any hidden variation in shape of any of these countries that we can't see here?
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): We could eliminate the US...
+
+### usd_pledged by staff_pick
+Before the graph
+Distribution(s) to be analysed/compared: usd_pledged by staff_pick
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: Because I already know that staff picks tend to be successful, I would assume a similar shape, etc to when we grouped by state
+Additional variables to be used: 
+Geom(s) to be used: boxplot, frequency polygon 
+```{r distribution analysis usd_pledged by staff_pick}
+# Graph 1 - Boxplot
+ks %>% 
+    ggplot(aes(staff_pick, usd_pledged)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 50000))
+
+        
+# Graph 2 - Frequency Polygon
+ks %>% 
+    ggplot(aes(usd_pledged, color = staff_pick)) + 
+    geom_freqpoly() +
+    xlim(c(NA, 20000))
+
+```
+After the graph:
+How does the visualization compare to my expectations, including spread, center, shape and outliers: In the frequency polygon, the no's are as highly concentrated around 0 as I would expect. The yes's are very spread out, almost flat across the frequencies
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): It took some zooming of course.
+
+### Distribution of pledged_to_goal
+Before the graph
+Distribution(s) to be analysed/compared: pledged_to_goal
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: Similar to usd_pledged, I expecta high concentration around 0, and heavily skewed to the right
+Additional variables to be used: 
+Geom(s) to be used: histogram
+```{r example distribution analysis}
+# Summary Table
+# ks %>% 
+#     summary_table(ks$pledged_to_goal)
+
+# Graph 1
+ks %>% 
+    ggplot(aes(pledged_to_goal)) + 
+    geom_histogram() + 
+    xlim(c(NA, 4))
+
+        
+# Graph 2
+# ks %>% 
+#     ggplot(aes()) + 
+
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: I expected the influence of the outliers and the high concentration near 0. I did not expect the second peak at or just after 1.
+Additional questions raised: Do some projects gain a little extra minimum as they get close to one? Or lose momentum right after getting it? Does kickstarter do anything (such as featuring projects that are close to funding) to encourage behaviour that would lead to that gap followed by the peak?
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+Questions to ask about the shape of a distribution:
+-Important to investigate and further understand anything unusual or interesting. Ask "why?"
+1. Curved or flat? curved
+2. If curved, upward or downward? downward to the right
+3. If curved, single or multiple peaked? multiple (bi-modal)
+4. If single peaked, symmetrical or skewed? skewed to the right
+5. Concentrations? around 0 and 1
+6. Gaps? just before 1
+
+And now to explore them by category...
+### pledged_to_goal by state
+Before the graph
+Distribution(s) to be analysed/compared: pledged to goal by state
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I would expect the range of failed projects to be 0 to 1, with a concentration around 0. I would expect the range of successful projects to be from 1 to whatever the highest outlier is, with a concentration at or just above 1.
+Additional variables to be used: state
+Geom(s) to be used: boxplot, frequency polygon
+```{r example distribution analysis}
+# Graph 1 - boxplot
+ks %>% 
+    ggplot(aes(state, pledged_to_goal)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 2))
+
+        
+# Graph 2 - frequency polygon
+ks %>% 
+    ggplot(aes(pledged_to_goal, colour = state)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 5))
+
+# Graph 3 - histogram by color
+ks %>% 
+    ggplot(aes(pledged_to_goal, fill = state)) + 
+    geom_histogram() + 
+    xlim(c(NA, 5))
+
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: It would appear that there are a few failed projects with a ratio of over 1. Otherwise, exactly what we would expect
+Additional questions raised: What does this tell us about our potential choice of pledged_to_goal as a dependent/response variable? How are some of the failed projects above 1?
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+Before the graph
+Distribution(s) to be analysed/compared: Failed projects with pledged_to_goal above 1
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I would expect it to be nonexistent. I would be wrong.
+Additional variables to be used: 
+Geom(s) to be used: histogram
+```{r distribution analysis failed projects with pledged to goal greater than 1}
+ks %>% 
+    filter(state == "failed", pledged_to_goal >= 1)
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: So it looks like there are only 3, and they are just barely passing.
+Adjustments to be made (if any): Not sure how it happened. I should remove them. 
+Conversely, how many successes are less than 0?
+
+```{r remove failed projects that met their goal}
+ks <- ks %>% 
+    filter(!(state == "failed" & pledged_to_goal >= 1))
+
+
+dim(ks) 
+
+```
+
+
+Before the graph
+Distribution(s) to be analysed/compared: successful projects with pledged to goal under 1
+Goal, question to be answered, or insight sought: Are there any, and if so, why?
+What I know about or expect from the distribution(s), including shape, outliers, center, spread: I expect none
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r distribution analysis successful projects with pledged to goal less than 1}
+ks %>% 
+    filter(state == "success", pledged_to_goal <= 1)
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including shape, outliers, center, spread: 
+Insights gained: There are none. Move along.
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+```{r}
+ks %>% 
+    filter(creator == "Kitten Factory")
+```
+
+
+### pledged_to_goal by country
+Before the graph
+Distribution(s) to be analysed/compared: pledged_to_goal by country
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I expect the freq polygon to once again be a demonstration of which countries have the most projects, and have relatively little to say about how the shape of the distributions compare to each other.
+Additional variables to be used: state?
+Geom(s) to be used: 
+```{r distribution analysis pledged to goal by country}
+
+# Graph 1 - boxplot
+# Too crowded
+ks %>% 
+    ggplot(aes(country, pledged_to_goal)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 2))
+
+        
+# Graph 2 - frequency polygon
+ks %>% 
+    ggplot(aes(pledged_to_goal, colour = country)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 2))
+
+# Graph 3 - histogram by color
+# Not that useful
+ks %>% 
+    ggplot(aes(pledged_to_goal, fill = country)) + 
+    geom_histogram() + 
+    xlim(c(NA, 5))
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: The pattern of concentrations around 0 and 1 (related to state) is very apparent.
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+Before the graph
+Distribution(s) to be analysed/compared: pledged to goal by staff_pick
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I assume that since there appears to be a high correlation between staff_pick and success, yes's will likely be concentrated around 1, while no's will be concentrated around 0
+Additional variables to be used: 
+Geom(s) to be used: boxplot, freqpoly, histogram
+```{r distribution analysis pledged_to_goal by staff_pick}
+# Graph 1 - boxplot
+ks %>% 
+    ggplot(aes(staff_pick, pledged_to_goal)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 5))
+
+        
+# Graph 2 - frequency polygon
+ks %>% 
+    ggplot(aes(pledged_to_goal, colour = staff_pick)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 2))
+
+# Graph 3 - histogram by color
+# Not that useful
+ks %>% 
+    ggplot(aes(pledged_to_goal, fill = staff_pick)) + 
+    geom_histogram() + 
+    xlim(c(NA, 5))
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: We are able to see the existence of cases that go against the expected trend: there are some staff_picks that don't succeed, and there are many that aren't staff picks that do succeed.
+Additional questions raised: Do projects get picked because they are likely to succeed, or do projects succeed because they are picked?
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+Before the graph
+Distribution(s) to be analysed/compared: pledged_to_goal by category
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r distribution analysis, eval=FALSE}
+#### To cluttered, can't figure out how to filter from summary table
+
+# Graph 1 - boxplot
+ks %>% 
+    group_by(category) %>% 
+    summarise(mean_pledged_to_goal = mean(pledged_to_goal)) %>% 
+    arrange(desc(mean_pledged_to_goal)) %>% 
+    filter(mean_pledged_to_goal > 15) %>% 
+    levels(as.factor(.$category))
+    
+    ggplot(aes(category, pledged_to_goal)) + 
+    geom_boxplot() 
+
+        
+# Graph 2 - frequency polygon
+ks %>% 
+    ggplot(aes(pledged_to_goal, colour = category)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 2))
+
+# Graph 3 - histogram by color
+# Not that useful
+ks %>% 
+    ggplot(aes(pledged_to_goal, fill = category)) + 
+    geom_histogram() + 
+    xlim(c(NA, 5))
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: 
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+
+
+### usd_goal 
+
+Before the graph
+Distribution(s) to be analysed/compared: usd_goal
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I expect some outliers (huge values), and also a concentration on the lower end, as I assume most projects are small
+Additional variables to be used: 
+Geom(s) to be used: histogram
+```{r distribution analysis usd_goal}
+# Summary Table
+# summary_table(ks, ks$usd_goal)
+
+# Graph 1 - histogram
+ks %>% 
+    ggplot(aes(usd_goal)) + 
+    geom_histogram() + 
+    xlim(c(NA, 50000))
+
+        
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: Not as highly concentrated around 0 as the variables that are based off the results. There seems to be some concentration around the big, round numbers. But with the downward sloping nature, its clear that there are more smaller projects than larger ones. Highly concentrated second bin (probably includes 1000)
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+### usd_goal by state
+
+Before the graph
+Distribution(s) to be analysed/compared: usd_goal by state
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I would expect that successful projects may have smaller goals (which would simply increase the likelihood of success). I could also see it going the other way, where bigger projects are taken more seriously by both creators and backers
+Additional variables to be used: 
+Geom(s) to be used: box plot, freqpoly
+```{r distribution analysis}
+# Graph 1 - box plot
+ks %>% 
+    ggplot(aes(state, usd_goal)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 50000))
+
+        
+# Graph 2 - freqpoly
+ks %>% 
+    ggplot(aes(usd_goal, colour = state)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 50000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: So at first glance at the boxplots, the failed group had the most extreme outliers (looks like at least a dozen with goals north of 50 million. Of course they ended up in that category). Interesting that in the freqpoly, the there are more successful projects at the very low end, but failed show a slightly higher frequency throughout most of the rest of the range.
+Additional questions raised: What is the relationship between goal and pledged_to_goal
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+### usd_goal by staff_pick
+Before the graph
+Distribution(s) to be analysed/compared: usd_goal by staff pick
+What I know about or expect from the distribution(s), including spread, center, shape and outliers: I would expect staff_pick to be larger projects, since kickstarter would want to highlight such projects
+Additional variables to be used: 
+Geom(s) to be used: boxplot, freqpoly
+```{r distribution analysis usd goal by staff pick}
+
+# Graph 1 - boxplot
+ks %>% 
+    ggplot(aes(staff_pick, usd_goal)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 50000))
+    
+
+        
+# Graph 2 - freqpoly
+ks %>% 
+    ggplot(aes(usd_goal, color = staff_pick)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 50000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including spread, center, shape and outliers: So the first look at the boxplots tells us that the staff didn't really take any/many of the huge projects too seriously.
+Additional questions raised: 
+How do the summary statistics compare to my expectations: 
+How do the summary statistics compare to the visualization: 
+Adjustments to be made (if any): 
+
+### Distribution of backers_count
+Before the graph
+Distribution(s) to be analysed/compared: backers_count
+Goal, question to be answered, or insight sought: Insight into the distribution of backer_count
+What I know about or expect from the distribution(s), including shape, outliers, center, spread: I expect a concentration near 0, and heavily skewed to the right
+Additional variables to be used: 
+Geom(s) to be used: histogram
+```{r distribution analysis}
+
+
+ks %>% 
+    ggplot(aes(backers_count)) + 
+    geom_histogram() + 
+    xlim(c(NA, 1000))
+
+summary(ks$backers_count)
+
+ks %>% 
+    filter(backers_count > 10000) %>%  
+    arrange(desc(backers_count))
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including shape, outliers, center, spread: Almost exactly, but even more and more extreme outliers than I would have thought.
+Insights gained: Some projects have VERY large numbers of backers
+Additional questions raised: Does average size of pledge relate to success? In other words, do some projects strategically target a high volume of smaller pledges?
+Adjustments to be made (if any): 
+
+Before the graph
+Distribution(s) to be analysed/compared: backers_count by state
+Goal, question to be answered, or insight sought: Is there anything out of the ordinary when comparing the backers count by state?
+What I know about or expect from the distribution(s), including shape, outliers, center, spread: I expect there to be very little overlap on the higher end. In other words, are there very many failed projects that have a reasonably high number of backers. I do expect there to be some successful projects with pretty low numbers of backers due to either small project size or large size of pledge.
+Additional variables to be used: state
+Geom(s) to be used: boxplot, freq poly
+```{r distribution analysis backers_count by state}
+ks %>% 
+    ggplot(aes(state, backers_count)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 2000))
+
+ks %>% 
+    ggplot(aes(backers_count, color = state)) +
+    geom_freqpoly() + 
+    xlim(c(NA, 1000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including shape, outliers, center, spread: The center of the freq poly for successful projects is slightly to the right and much lower than for failed. Failed projects are more skewed to the right than I expected.
+Insights gained: More high values for failed projects than I expected.
+Additional questions raised: What causes a project with 1000+ values to fail? Too high of a goal? Too small average pledge?
+Adjustments to be made (if any): 
+
+Before the graph
+Distribution(s) to be analysed/compared: backers_count by staff_pick
+Goal, question to be answered, or insight sought: Are there any suprises when we break up backers_count by staff_pick?
+What I know about or expect from the distribution(s), including shape, outliers, center, spread: I would expect picks to have a center further right than those not picked. Also picks will be more skewed to the right. However, I don't expect as much of a difference as when broken down by state
+Additional variables to be used: 
+Geom(s) to be used: boxplot, freqpoly
+```{r distribution analysis}
+# Boxplot
+ks %>% 
+    ggplot(aes(staff_pick, backers_count)) + 
+    geom_boxplot() + 
+    ylim(c(NA, 1000))
+
+ks %>% 
+    ggplot(aes(backers_count, color = staff_pick)) + 
+    geom_freqpoly() + 
+    xlim(c(NA, 250))
+```
+After the graph
+How does the visualization compare to my expectations, including shape, outliers, center, spread: There are many outliers on the high end for both categories (looks like a few more for the trues). However, the body of the box does in fact look higher for the trues. On the freqpoly, the trues really have no peak
+Insights gained: staff_pick appears to be relevant to backers_count.
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+## 3. Variation through time: Line graphs
+So there's not just a whole lot to analyse related to time here, but perhaps a few things. Have the success of projects increased over time?
+Have the size of projects increased over time?
+Have the average size of pledges increased over time?
+
+```{r success of projects over time}
+ks %>% 
+    ggplot(aes(launched_at, usd_goal)) + 
+    geom_path() + 
+    geom_point() + 
+    geom_smooth()
+
+ks %>% 
+    ggplot(aes(launched_at, usd_goal)) + 
+    geom_freqpoly(stat = "identity")
+
+# not working...
+# ks %>% 
+#     group_by(year(.$launched_at)) %>% 
+#     summarise(mean_usd_goal = mean(usd_goal)) %>% 
+#     ggplot(aes(launched_at, mean_usd_goal)) + 
+#     geom_path() + 
+#     geom_point() + 
+#     geom_smooth()
+
+```
+
+So what if I just ignore time series.... I like it!
+
+## 4. Relationships among measures: Scatterplots, scatterplot matrices
+
+```{r names}
+names(ks)
+```
+
+So a few to look at:
+usd_pledged
+pledged_to_goal
+usd_goal
+backers_count
+
+So lets' do one
+```{r first correlation}
+ks %>% 
+ggplot(aes(usd_pledged, usd_goal)) + 
+    geom_point() + 
+    xlim(c(1, 3000000)) + 
+    ylim(c(1, 3000000)) + 
+    geom_smooth()
+
+```
+
+So what do I need for an iteration process here?
+Here's my distribution analysis process, adapted for correlations:
+## Process for Each Correlation Analysis
+Before the graph
+Relationship(s) to be analysed/compared: 
+Goal, question to be answered, or insight sought: 
+What I know about or expect from the relationship(s), including direction, strength, shape, concentrations, gaps, and outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis}
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, shape, concentrations, gaps, and outliers: 
+Insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+So lets start with an easy one: usd_pledged by backers count. Should be a high correlation right?
+Before the graph
+Relationship(s) to be analysed/compared: usd_pledged by backers_count
+Goal, question to be answered, or insight sought: Is there a strong relationship between usd_pledged and backers_count?
+What I know about or expect from the relationship(s), including direction, strength, and shape: I would expect that the more backers there are, the higher usd_pledged will be. I expect the relationship to be positive, very strong, and linear.
+Do I expect concentrations, gaps, or outliers: concentrations around 0. Outliers stemming from very large pledges.
+Additional variables to be used: 
+Geom(s) to be used: point, smooth
+```{r correlation analysis: usd_pledged by backers_count}
+ks %>% 
+    ggplot(aes(backers_count, usd_pledged)) + 
+    geom_point() + 
+    geom_smooth()
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and  shape: Not quite as strong as I expected
+Are there concentrations, gaps, or outliers: Concentration near 0, and many outliers. Some (maybe more) of the outliers appear to be due as much to large numbers of backers than larger individual pledges
+Additional insights gained: 
+Additional questions raised: Is there any benefit to pursuing a larger number of smaller pledges?
+Adjustments to be made (if any): 
+
+Before the graph
+Relationship(s) to be analysed/compared: pledged_to_goal to backers_count
+Goal, question to be answered, or insight sought: Are there any insights to be gained other than more is generally better?
+What I know about or expect from the relationship(s), including direction, strength, and shape: I would expect positive, very strong, and linear
+Do I expect concentrations, gaps, or outliers: Once again, a concentration around 0, with outliers based projects having either especially large pledges or numbers of backers
+Additional variables to be used: 
+Geom(s) to be used: point, smooth
+```{r correlation analysis pledged_to_goal by backers_count}
+ks %>% 
+    ggplot(aes(backers_count, pledged_to_goal)) + 
+    geom_point() + 
+    geom_smooth() 
+
+ks %>% 
+    ggplot(aes(backers_count, pledged_to_goal)) + 
+    geom_point() + 
+    geom_smooth() + 
+    ylim(c(NA, 2))
+
+ks %>% 
+    ggplot(aes(backers_count, pledged_to_goal)) + 
+    geom_point() + 
+    geom_smooth() + 
+    ylim(c(0, 1)) + 
+    xlim(c(NA, 4500))
+
+ks %>% 
+    filter(state == "failed", backers_count > 2000) %>% 
+    mutate(mean_pledge = usd_pledged / backers_count) %>% 
+    dplyr::select(name, blurb, usd_goal, usd_pledged, mean_pledge, backers_count)
+
+ks <- ks %>% 
+    mutate(mean_pledge = usd_pledged / backers_count) 
+summary(ks)
+
+ks %>% 
+    ggplot(aes(backers_count, pledged_to_goal)) + 
+    geom_point() + 
+    geom_smooth() + 
+    ylim(c(1, 10)) 
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: Not nearly as linear, but the outliers seem to be skewing the picture.
+Are there concentrations, gaps, or outliers: Definitely some outliers. The a pledged_to_goal ratio of 40000+ seems to have very few backers. Conversely, many projects seem to have a very high amount of backers but not be crazy successful. Need to zoom in on these
+Additional insights gained: Its clear you can be very successful with few backers. It is also clear that some especially large projects can get quite a few pledges but just not hit their lofty goals. It seems as though regardless of pledged_to_goal, the majority of projects have few backers. The shape of the smooth suggests that a linear model would not be a great representation
+Additional questions raised: Can you be unsuccessful with many backers? How do projects with over 4000 backers not reach their goal?
+Adjustments to be made (if any): Zooming in on different parts of the data.
+
+
+
+So while its thinking, what all does it come down to?
+Chart types:
+bar
+boxplot
+point
+histogram
+freqpoly
+
+Add on/manipulations
+vline
+smooth
+xlim
+ylim
+mapping to categories
+mapping to continuous variables
+facet_grid
+facet_wrap
+
+Before the graph
+Relationship(s) to be analysed/compared: pledged to goal by goal
+Goal, question to be answered, or insight sought: Does a smaller goal increase the likelihood of the goal being reached?
+What I know about or expect from the relationship(s), including direction, strength, and shape: I would expect a smaller goal to lead to a higher pledged to goal. I expect a ton of variation, so not a particularly strong relationship
+Do I expect concentrations, gaps, or outliers: I expect a concentration around 0, and I will probably filter them out. I also expect many outliers
+Additional variables to be used: 
+Geom(s) to be used: point, smooth
+```{r correlation analysis pledged to goal by goal}
+ks %>% 
+    ggplot(aes(usd_goal, pledged_to_goal)) + 
+    geom_point(alpha = .5) + 
+    geom_smooth() + 
+    ylim(c(0.01, 2)) + 
+    xlim(c(NA, 1000000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: The relationship is not particularly strong (visually). When zoomed in (to 2 for pledged_to_goal), you begin to see some evidence that a smaller goal might lead to some success, but nothing visually compels me to read too much into that relationship. It actually appears that success drops as projects get beigger only to a point. Perhaps bigger projects are sometimes taken more seriously. 
+Are there concentrations, gaps, or outliers: Concentrations near 0 on the x axis meaning many projects are small. Concentration near 0 on y axis, meaning many projects are unsuccessful. Concentration at 1 on y axis meaning many projects are just barely succesful, or alternatively that relatively few projects are just barely unsuccesful.
+Additional insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): Filter out zero's and outliers
+
+Relationship(s) to be analysed/compared: pledged to goal by goal by staff_pick
+Goal, question to be answered, or insight sought: is the relationship different for staff_picks?
+What I know about or expect from the relationship(s), including direction, strength, and shape: I know that staff picks are more successful than those that aren't, but I dont expect a different relationship of goal to ratio
+Do I expect concentrations, gaps, or outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis pledged to goal by goal, by staff_pick}
+ks %>% 
+    ggplot(aes(usd_goal, pledged_to_goal, shape = staff_pick)) + 
+    geom_point() + 
+    geom_smooth() + 
+    ylim(c(0.01, 2)) + 
+    xlim(c(NA, 1000000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: The smooth for staff picks is a little flatter, possibly indicating less of a relationship of goal to success.
+Are there concentrations, gaps, or outliers: Same as above
+Additional insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+```{r}
+names(ks)
+summary(ks$mean_pledge)
+```
+
+Before the graph
+Relationship(s) to be analysed/compared: goal to success ratio, by mean_pledge
+Goal, question to be answered, or insight sought: Do more successful projects have larger mean pledges
+What I know about or expect from the relationship(s), including direction, strength, and shape: Of course they do, though it is the result of a combination of things
+Do I expect concentrations, gaps, or outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis pledged to goal by goal, by mean_pledge}
+ks %>% 
+    ggplot(aes(usd_goal, pledged_to_goal, size = mean_pledge)) + 
+    geom_point(alpha = .5) + 
+    geom_smooth() + 
+    ylim(c(0.01, 2)) + 
+    xlim(c(NA, 1000000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: Lots of variation. Tells me that average pledge is not a real determining factor in this relationship
+Are there concentrations, gaps, or outliers: Same as above
+Additional insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+Before the graph
+Relationship(s) to be analysed/compared: usd_pledged to backers_count
+Goal, question to be answered, or insight sought: Does the number of backers contribute to success?
+What I know about or expect from the relationship(s), including direction, strength, and shape: I expect the number of backers to contribute to success. I expect a positive correlation, but I do not expect it to be causal.
+Do I expect concentrations, gaps, or outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis pledged to goal by backers count}
+ks %>% 
+    ggplot(aes(backers_count, pledged_to_goal)) + 
+    geom_point() + 
+    geom_smooth() + 
+    ylim(c(0.01, 50)) + 
+    xlim(c(1, NA))
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: The smooth drops after initially rising. 
+Are there concentrations, gaps, or outliers: 
+Additional insights gained: 
+Additional questions raised: Why would projects with a large number of backers be less successful?
+Adjustments to be made (if any): Removing 0s and outliers
+
+Before the graph
+Relationship(s) to be analysed/compared: backeers count to pledged, by staff_pick
+Goal, question to be answered, or insight sought: Does staff pick contribute to the relationship between backers count and pledged?
+What I know about or expect from the relationship(s), including direction, strength, and shape: 
+Do I expect concentrations, gaps, or outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis pledged to goal by backers count, by staff_pick}
+ks %>% 
+    ggplot(aes(backers_count, pledged_to_goal, shape = staff_pick)) + 
+    geom_point() + 
+    geom_smooth() + 
+    ylim(c(0.01, 50)) +
+    xlim(c(1, 20000))
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: Looks like a similar relationship, simply higher for the staff picks, which we already know are more successful
+Are there concentrations, gaps, or outliers: 
+Additional insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+Before the graph
+Relationship(s) to be analysed/compared: usd_pledged ~ backers_count, by staff_pick and by state 
+Goal, question to be answered, or insight sought: 
+What I know about or expect from the relationship(s), including direction, strength, and shape: 
+Do I expect concentrations, gaps, or outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis usd_pledged ~ backers_count, by staff_pick and by state}
+ks %>% 
+    ggplot(aes(backers_count, usd_pledged, shape = staff_pick, color = state)) + 
+    geom_point() + 
+    geom_smooth() + 
+    xlim(c(1, 5000)) + 
+    ylim(c(NA, 500000))
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: 
+Are there concentrations, gaps, or outliers: Concentrations near 0, tons of outliers
+Additional insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+```{r fun with facetting}
+
+ks %>% 
+    ggplot(aes(usd_pledged, backers_count)) + 
+    geom_point() + 
+    facet_wrap(~ state)
+
+ks %>% 
+    ggplot(aes(usd_pledged, backers_count)) + 
+    geom_point() + 
+    facet_wrap(staff_pick ~ state)
+
+
+```
+
+Wait, did I just finish EDA?
+
+Just might be good enough for this pass. I think I've covered just about everything I need to in this stage, it just needs to be cleaned up and possibly applied to a subset/sample of the data.
+
+## Step 3: Building and Evaluating Models
+
+Goals of this stage:
+1. Build a model 
+2. Evaluate the model
+3. Iteratively create alternative models and compare the results
+4. Decide on a final model
+5. Interpret its use
+
+So in short, I basically just need to work through Practical Stats. Autopilot to some extent for this run though.
+### Basic Linear Regression
+
+```{r Initial Model}
+
+model <- lm(pledged_to_goal ~ backers_count, data = ks)
+model
+fitted <- predict(model)
+residuals <- residuals(model) # What do I do with these?
+
+```
+
+
+
+```{r}
+names(ks)
+```
+
+So what are our potential independent variables? Been away from this stuff for a little while and I need to brush back up.
+
+### Multiple Regression
+
+The variable names are listed above.
+Continuous Variables:
+usd_goal
+backers_count
+mean_pledge
+
+Categorical Variables:
+country 
+staff_pick
+category
+
+```{r Multiple Model 1}
+model_multiple_1 <- lm(pledged_to_goal ~ backers_count + mean_pledge, data = ks)
+summary(model_multiple_1)
+
+```
+
+```{r remove some na's}
+
+ks2 <- ks %>% 
+    filter(!is.na(mean_pledge)) 
+    
+nrow(ks)
+nrow(ks2)
+
+```
+
+```{r Multiple Model 2}
+model_multiple_2 <- lm(pledged_to_goal ~ backers_count + mean_pledge + usd_goal, data = ks2, na.action = na.omit) # Changed to ks2 
+summary(model_multiple_2)
+```
+
+### Stepwise Regression
+
+```{r Stepwise Regression}
+require(MASS)
+stepwise <- stepAIC(model_multiple_2, directions = "both")
+stepwise
+summary(stepwise)
+
+```
+### Interpretation
+
+Stepwise should definitely be included, but somewhere around this juncture I also need to discuss RMSE and r-squared. Will need to find an outside resource (book or article) that outline the basic interpretation. I'm thinking 30 second run through.
+
+### Bootstrapping
+
+Here Practical Stats discusses bootstrapping, but gives no examples or code. I think I bookmarked an article about a simplified package for bootstrapping, wait for it,https://github.com/jtleek/slipper. I should plan on using that
+
+### Factor Variables
+
+```{r adding state to the model}
+model_with_staff_pick <- lm(pledged_to_goal ~ backers_count + mean_pledge + usd_goal + staff_pick, data = ks2, na.action = na.omit)
+summary(model_with_staff_pick)
+```
+
+```{r stepwise again with staff pick}
+
+stepwise_staff_pick <- stepAIC(model_with_staff_pick, directions = "both")
+stepwise_staff_pick
+summary(stepwise_staff_pick)
+```
+
+So lets try this with country and category. Remember how unwieldy they were at the beginning? Maybe I'll be able to distill things a bit
+
+```{r adding in country and category}
+model_full <- lm(pledged_to_goal ~ backers_count + mean_pledge + usd_goal + staff_pick + category + country, data = ks2, na.action = na.omit)
+# summary(model_full)
+step_model_full <- stepAIC(model_full, directions = "both")
+summary(step_model_full)
+
+```
+
+Note that the update() function can be used to add or remove variables from a model. Could work in a simple example just to show it.
+
+### Bootstrapping
+
+```{r install and get documentation on slipper, eval=FALSE}
+# devtools::install_github('jtleek/slipper')
+?slipper::slipper_lm # First time I've used this notation I think
+library(slipper)
+```
+
+```{r bootstrapping, eval=FALSE}
+library(MASS)
+ks2 %>% 
+    slipper_lm(step_model_full, B = 100)
+?MASS::select
+```
+
+
+
+Eh forget bootstrapping.
+
+And f hypothesis tests. Let's just move on to the basics
+
+```{r detaching a package, eval=FALSE}
+(.packages()) # List all attached packages
+detach(package:MASS) # detach MASS
+(.packages()) # confirm
+```
+
+
+```{r model summary for interpretation}
+summary(model_with_staff_pick)
+```
+
+
+So for each of the following terms, I need a definition and bullet points for interpretation.
+
+Residuals - The difference between the observed values and the predicted values. Ideally, the residuals are normally distributed and have a mean of zero. Generally speaking, the they closer they all are to zero, the better. It is a good idea to plot a histogram to check that the distribution is at least roughly normal.
+
+Root mean squared error (RMSE) - The square root of the average squared error of the regression (from Practical Stats) 
+
+Residual Standard Error (RSE) - The same as the RMSE, but adjusted for degrees of freedom (from Practical Stats). Its worth noting that the summary function in R only gives us RSE, so let's go with that. It is a measure of the deviation of actual observed values to predicted values. 
+
+R-squared - The proportion of variation explained by the model, from 0 to 1 (from Practical Stats)
+
+Adjusted R-squared - The same as R-squared, but adjusted for degrees of freedom. Adding additional variables to the model ALWAYS increases R-squared, whether or not the additional variable has no significance whatsoever. Adjusting for degrees of freedom helps offset this problem by including the number of variables in the model.
+
+t-statistic - The coefficient for a predictor, divided by the standard error of the coefficient, giving a metric to compare the importance of variables in the model (from Practical Stats). In simple terms, the t-statistic represents how many standard deviations our estimate is from zero. Since a coefficient having a true value of zero would indicate that there is no relationship between that predictor variable and the response variable, we want the t-statistic to be relatively high. For a 95% significance level, a t-stat of around 2 is required, assuming a large sample.
+
+p-value (Pr(>|t|) - The probability of finding more extreme results when the null hypothesis is true, meaning there is no relationship. More simply, the p-value represents the probability that there is actually no relationship between the two variables.
+
+F-statistic - Another statistic used to measure significance. Generally, the further away the F-statistic is from 1, the more likely the relationship is significant. The size of the sample affects the F-statistic, so the smaller the dataset is, the higher the F-stat must be.
+
+So let's analyze the diagnostics here!
+```{r distribution of residuals}
+resid <- residuals(model_with_staff_pick)
+fitted <- predict(model_with_staff_pick)
+resid_fitted <- data.frame(resid, fitted)
+
+resid_fitted %>% 
+    ggplot() + 
+    geom_histogram(aes(resid)) + 
+    xlim(c(-10, 10))
+
+resid_fitted %>% 
+    ggplot() + 
+    geom_point(aes(fitted, resid)) + 
+    ylim(c(-10, 10))
+
+```
+
+Turns out our distributions are not exactly normally distributed. This means we cannot be quite as sure of our model, but it does not discount it entirely. It does, however, increase the likelihood of incorrectly rejecting the null hypothesis (identifying a relationship that does not really exist).
+
+```{r reprint of the summary}
+summary(model_with_staff_pick)
+```
+
+Not much in this full model gives us much confidence
+
+Let's go back to our stepwise results
+
+```{r summary of stepwise winner}
+summary(step_model_full)
+```
+
+Once again we have residuals centered around -3 rather than 0, and a very low R-squared. The coefficient of backers_count is statistically significant. Overall, not very confidence inspiring, but we can go with it in order to explore the rest of the possibilities.
+
+```{r distribution of residuals}
+resid <- residuals(step_model_full)
+fitted <- predict(step_model_full)
+resid_fitted <- data.frame(resid, fitted, pledged_to_goal = ks2$pledged_to_goal)
+
+resid_fitted %>% 
+    ggplot() + 
+    geom_histogram(aes(resid)) + 
+    xlim(c(-10, 10))
+
+resid_fitted %>% 
+    ggplot() + 
+    geom_point(aes(fitted, resid)) + 
+    ylim(c(-10, 10))
+
+resid_fitted %>% 
+    ggplot() + 
+    geom_point(aes(fitted, pledged_to_goal)) # Why not linear?
+
+
+
+
+```
+
+```{r}
+plot(resid)
+plot(step_model_full)
+```
+So this is a good way to get a few important graphs to quickly analyze without a lot of manipulation.
+
+Lets quickly get a confidence interval of the coefficients
+```{r confidence interval of coefficients}
+confint(step_model_full)
+confint(model_with_staff_pick)
+
+```
+
+
+Now let's put it to use
+
+```{r prediction interval}
+backers <- data.frame(backers_count = 100)
+
+predict(step_model_full, backers, interval = "confidence")
+
+```
+
+But arent confidence intervals used for the coefficients? Hmmmmm I need to check on that
+
+```{r prediction interval for multiple inputs}
+backers <- data.frame(backers_count = c(100, 150, 200))
+
+predict(step_model_full, backers, interval = "prediction")
+
+```
+
+Sweeeeet
+
+
+So my game plan for now is to work back through everything I just wrote, applying it to the full model and the step model.
+
+Lets do some of that heteroskedasticity stuff.
+
+Very quickly, I want to get a little to do list for the rest of this stuff.
+I want to skim the earlier part of the chapter in practical stats, and then update this list just a bit more. 
+How to deal with outliers
+Should I deal with influential values? Maybe only if it shows a good way to remove them. I'm not going to mess with it otherwise.
+Making an influence plot could be worthwile, as it looks simple enough. Whats the real benefit though?
+Between the book and the article I just found, I should be able to assess and deal with heterowhatever pretty quickly.
+
+If I just get all this done, I'll have the modelling knocked out and I can move on!
+
+And oh how I want to move on...
+
+Outliers
+Standardized Residuals - Residuals divided by the standard error of the residuals. (from Practical Stats)
+
+So you can rank the standardized resids, order them and take the smallest(?). Could you take the absolute value and take the largest? Or could you make a boxplot and take anything over or under 1.5x the iqr?
+
+You can then view individual records to check for errors, etc. If it is an error, it should be removed from the data.
+
+Influential values - A value or record whose presence or absence makes a big difference in the regression equation (from Practical Stats)
+-not necessarily associated iwth a large residual.
+Wait. Screw leverage and influential values.
+
+When using large datasets, it is unlikely that any one record will have sufficient leverage to significantly effect the regression model.
+
+Now we're on to heteroskedasticity.
+Heteroskedasticity - When some ranges of the outcome experience residuals with higher variance. (from Practical Stats). The lack of constant residual variance across the range of the predicted values. (also from Practical Stats). Occurs when the variance for all observations in a data set are not the same. (from R Pubs)
+Homoskedasticity - When the variance for all observations are equal. (from R Pubs)
+
+"For formal inference to be fully valid, the residuals are assumed to be normally distributed, have the same variance, and be independent" (from Practical Stats). In other words, this topic is of more importance to statisticians than data scientists.
+
+To check for h-dicity, you can plot absolute residuals versus predicted values and apply a smooth.
+
+Can alsp plot a histogram of the standardized residuals to check normality (already done above)
+
+Should I demonstrate the Breusch-Pagan Test? It seems simple enough to do so, so I might as well include it. I'll try it on my model and go from there. If I get a buncha hiccups, then I may not include it.
+
+So we can detect it, but I'm not going into how to correct it. Way too many logs.
+
+```{r partial residuals, eval=FALSE}
+# Note that I'm using the model with all the terms, just to have several to play with
+terms <- predict(model_with_staff_pick, type = "terms")
+partial_resid <- resid(model_with_staff_pick) + terms
+
+# And I don't think I really want to do partial residual plots. Maybe later
+
+```
+
+So my game plan for now is to work back through everything I just wrote, applying it to the full model and the step model.
+
+"Most real world data will probably be heteroskedastic. However, one can still use ordinary least squares without correcting for heteroskedasticity because if the sample size is large enough, the variance of the least squares estimator may still be sufficiently small to obtain precise estimates." (from rpubs article by Yobero)
+
+so we should attempt to plot it and interpret it informally and visually. Then do the more formal Breusch-Pagan test
+
+```{r Breusch-Pagan Test for Heteroskedasticity}
+# install.packages("lmtest")
+library(lmtest)
+
+bptest(model_with_staff_pick)
+
+bptest(step_model_full)
+
+```
+
+Interpretation:
+
+The null hypothesis is that heteroskedasticity is not present. Therefore, if we reject it, we are concluding that heteroskedasticity is present.
+

@@ -1,0 +1,13 @@
+---
+title: "main"
+output: html_document
+---
+
+```{r child = 'phase1.Rmd'}
+
+```
+
+```{r child = 'phase2.Rmd'}
+
+```
+

@@ -1,0 +1,24 @@
+---
+title: "phase2"
+output: html_notebook
+---
+
+This is phase2
+
+I'm going to take a variable from another document and do stuff with it.
+
+
+```{r}
+library(knitr)
+source(purl("phase1.Rmd"))
+```
+
+
+```{r}
+2 * var1 
+```
+
+```{r}
+var1 * var1
+```
+

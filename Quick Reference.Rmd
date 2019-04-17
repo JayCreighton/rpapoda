@@ -1,0 +1,171 @@
+---
+title: "Quick Reference"
+output: html_notebook
+---
+## Iteration Cycle
+My goal based iteration cycle is currently as follows:
+1. Set a goal for the task ahead
+* Define expectations or criteria for success
+2. Attempt to complete the goal or perform the task
+3. Compare your results to your expectations or your criteria for success
+4. (Optional) Use judgment and experience to decide whether you think the expectations should be altered, or the task should be repeated under different parameters
+5. Make adjustments, and repeat as necessary
+
+**My Process of EDA**
+<!-- Should be customized a bit -->
+From Signal and NUCI
+1. Variation within categories: Bar charts, dot plots (Ranking and part-to-whole relationships)
+2. Variation within measures: Histograms, frequency polygons, boxplots (single and multiple distributions, aka distributions by category) # Distributions
+3. Variation through time: Line graphs*
+4. Relationships among measures: Scatterplots, scatterplot matrices # Correlations
+5. Relationships among categories: Visual crosstabs/small multiples with horizontal bar charts or scatterplots 
+<!-- Could this replace the goals above as well? -->
+
+Variation within categories:
+The Categories:
+state
+country
+category
+staff_pick
+spotlight
+creator
+
+The Variation:
+state
+mean/median pledged_to_goal
+usd_pledged
+size of the goal 
+backer_count
+average pledged
+
+## Generic Process for Each Graph 
+<!-- Works well for Variation within Categories -->
+Before the graph
+Goal, question to be answered, or insight sought: 
+Type of graph: 
+Variables to be used: 
+Geoms or layers to be used: 
+```{r example of graphing process}
+
+```
+
+After the graph
+Insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+## Variation Within Measures
+Distributions to Explore:
+usd_pledged
+pledged_to_goal
+usd_goal
+backers_count
+
+Categories to group by:
+state
+country
+staff_pick
+category
+
+Vocab for assessing the shape of a distribution:
+curved
+flat
+upward
+downward
+single peaked
+bi-modal
+symmetrical
+skewed
+concentrations
+gaps
+
+## SOCS
+shape
+outliers
+center
+spread
+
+
+## Process for Each Distribution Analysis
+Before the graph
+Distribution(s) to be analysed/compared: 
+Goal, question to be answered, or insight sought: 
+What I know about or expect from the distribution(s), including shape, outliers, center, spread: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r distribution analysis}
+
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including shape, outliers, center, spread: 
+Insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+## Relationships Among Measures
+usd_pledged (likely dependent/response)
+pledged_to_goal (likely dependent/response)
+usd_goal
+backers_count
+mean_pledge
+
+Categories:
+state (essentially a response)
+country 
+staff_pick
+category
+
+So we need 2 continuous variables, which we can also separate into categories, and map another continuous variable by size.
+Pairs
+usd_pledged ~ usd_goal
+usd_pledged ~ usd_goal, by staff_pick
+usd_pledged ~ usd_goal, size = mean_pledge
+usd_pledged ~ backers_count
+usd_pledged ~ backers_count, by staff_pick
+pledged_to_goal ~ usd_goal
+pledged_to_goal ~ usd_goal, by category
+pledged_to_goal ~ usd_goal, by staff_pick
+pledged_to_goal ~ backers_count
+pledged_to_goal ~ backers_count, by staff_pick
+
+Facetting:
+facet_wrap:
+by state
+by staff_pick
+category?
+
+facet_grid:
+state ~ staff_pick
+
+
+## Process for Each Correlation Analysis
+Before the graph
+Relationship(s) to be analysed/compared: 
+Goal, question to be answered, or insight sought: 
+What I know about or expect from the relationship(s), including direction, strength, and shape: 
+Do I expect concentrations, gaps, or outliers: 
+Additional variables to be used: 
+Geom(s) to be used: 
+```{r correlation analysis}
+
+
+```
+After the graph
+How does the visualization compare to my expectations, including direction, strength, and shape: 
+Are there concentrations, gaps, or outliers: 
+Additional insights gained: 
+Additional questions raised: 
+Adjustments to be made (if any): 
+
+## Potential Variables to be used in Model
+Continuous Variables:
+usd_goal
+backers_count
+mean_pledge
+
+Categorical Variables:
+country 
+staff_pick
+category

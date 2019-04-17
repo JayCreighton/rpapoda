@@ -1,0 +1,245 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#############################################################
+# DATA RESHAPING WITH TIDYR
+#
+# How to ...
+#   - reshape data wide to long:    spread()
+#   - reshape data long to wide:    gather()
+#   - split a variable:             separate()
+#   - combine two varibale values:  unite()
+#
+# Also: more examples at the bottom
+#   - specifically, examples relevant to machine learning
+#
+#
+# © Copyright 2017 Sharp Sight
+# All rights reserved
+# sharpsightlabs.com
+#
+#############################################################
+
+
+
+#----------------
+# LOAD PACKAGE
+#----------------
+```{r}
+#library(tidyr)
+library(startingDataScience)
+```
+
+#################
+# tidyr functions
+#################
+
+
+
+#=================================
+# GATHER
+# - gather() converts wide to long
+#
+#=================================
+```{r}
+# inspect
+head(revenue_2_untidy)
+```
+
+#-----------------------
+# gather()
+# - reshape wide to long
+# - new key: quarter
+# - new value: income
+#-----------------------
+```{r}
+gather(revenue_2_untidy, quarter, income, -region)
+```
+
+
+
+#===================================
+# SPREAD
+# - spread() converts long to wide
+#
+#===================================
+```{r}
+# inspect
+print(revenue_tidy)
+```
+
+#-------------------------------------------------------------------
+# spread()
+# - reshape long to wide
+# - "quarter" variable holds the values that will become new columns
+#-------------------------------------------------------------------
+```{r}
+spread(revenue_tidy , quarter, revenue)
+```
+
+
+
+#====================================================
+# SEPARATE
+# - separate() divides a column into multiple columns
+#
+#====================================================
+```{r}
+# inspect
+print(founders)
+```
+
+#-------------------------------------------------
+# separate()
+# - break "name" into "first_name" and "last_name"
+#-------------------------------------------------
+```{r}
+separate(founders , name , c("first_name","last_name") , sep = " ")
+```
+
+
+
+#====================================================
+# UNITE
+# - unite() combines multiple columns into one column
+#
+#====================================================
+
+```{r}
+# inspect
+print(founders_2)
+```
+
+#--------------------------------------------------
+# unite()
+# - here we are 'uniting' first_name and last_name
+#   into a single variable called 'name'
+#--------------------------------------------------
+
+```{r}
+unite(founders_2, name, first_name, last_name, sep = " ")
+```
+
+
+
+################
+# MORE EXAMPLES
+################
+
+
+#====================================================
+# EXAMPLE:
+#  - Boston dataset
+#  - 'Boston' is a good machine learning dataset
+#    and what we're doing here is typical ML
+#    data exploration
+#  - we're going to create a density plot of each
+#    variable (all in the same plot)
+#  - to do this, we'll need to reshape
+#====================================================
+
+```{r}
+# get data
+data(Boston, package = "MASS")
+```
+
+```{r}
+# inspect
+head(Boston) # print first few rows
+ncol(Boston) # calculate number of columns
+```
+
+
+#----------------------------------------------------
+# gather()
+# - reshape wide to long
+# - we want all of the column names in Boston to 
+#   be values in a new column of our reshaped data
+#----------------------------------------------------
+
+df.boston_gathered <- gather(Boston)
+
+# inspect
+head(df.boston_gathered)
+
+
+#-----------------------------------
+# PLOT density plot of each variable
+#-----------------------------------
+
+ggplot(data = df.boston_gathered, aes(x = value)) +
+  geom_density() +
+  facet_wrap(~ key, scales = "free")
+
+
+
+#----------------------------------------------------------------
+# REDO using dplyr pipes:
+# - here, we'll redo the process of reshaping and plotting Boston
+#   ... we'll use dplyr pipes to do it all-in-one
+#----------------------------------------------------------------
+
+Boston %>%
+  gather() %>%
+  ggplot(aes(x = value)) +
+    geom_density() +
+    facet_wrap(~ key, scales = "free")
+
+
+
+
+#======================================================================
+# EXAMPLE:
+# - bbbDescr dataset from 'caret'
+# - note: again, this is a machine learning dataset and
+#         what we're doing here is typical of ML pre-modeling work
+# - ultimately, we want to create density plots of all of our variables
+# - we need to reshape to get the data in a form that ggplot can use
+#   in a small-multiple chart (i.e., faceting)
+#======================================================================
+
+
+#------------------------------
+# get data from 'caret' package
+#------------------------------
+
+```{r}
+library(caret)
+data(BloodBrain)
+```
+
+# inspect
+head(bbbDescr)  # print top few rows
+dim(bbbDescr)   # get number of rows & columns ... that's a lot!
+
+
+
+#-----------------------------------------------------
+# gather()
+# - reshape wide to long
+# - we want to have our variable names along the rows
+#-----------------------------------------------------
+
+gather(bbbDescr) %>% head()
+
+
+#--------------------------------------------------------------
+# PLOT small multiple
+# - we're plotting a density plot of each separate variable
+# - by using dplyr pipes in this "waterfall" pattern,
+#   we don't need to create and save an intermediate, gathered
+#   dataframe
+#--------------------------------------------------------------
+
+bbbDescr %>%
+  gather %>%
+  ggplot(aes(x = value)) +
+    geom_density() +
+    facet_wrap(~ key, scale = "free")
+
+
+
+
+# EOF

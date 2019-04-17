@@ -1,0 +1,454 @@
+---
+title: 'rpapoda Phase 1: Setting the Stage'
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/apa.csl
+output:
+  html_document:
+    df_print: paged
+bibliography: bib.bib
+---
+
+<!-- So now that I have gotten this run underway, a few goals are becoming aparrent:
+3 Primary Tasks: Commentary, Content (Code and Analysis), and filling in the Missing Pieces
+Fill in commentary as though I were teaching someone as I go. May end up resembling the script of the video or possibly more like a short book.
+However, the commentary does not have to be perfect.
+The other focus is content, analysis and code, specifically putting it into a logical order.
+I also need to fill in the pieces missing from the first pass, such as version control-->
+
+<!-- Keep in mind that this will eventually be converted to slides, which is more important than the student being able to follow along perfectly. -->
+
+# Goals
+## Goals of this Phase: 
+* Setup your project <!-- What do I mean by this? Formatting the notebook or something? I'm gonna go with creating the project and the notebook, and setting up a repo on github. If thats what I'm going with, might actually need to happen very first. I think much of this will need to be done before... but when? Should I set up a repo in the intro? Yes. I can talk a little about notebook headers in the intro, then run through them at the beginning here. Much of this, including version control can happen at "New Project..." which needs to happen just before the commentary here starts. That likely would be a slide or two right after introducing the goals.--> 
+* Find and import data (if necessary)  
+* Inspect the data  
+* Ask a question  
+* Tidy the data, do any other necessary formatting of the data, and document each step along the way  
+* Create a code book  
+
+## Other Goals of this Lesson:
+<!-- ## Other Introductory Material and Important Concepts -->
+* Intro to R and RStudio  
+* Intro to Reproducible Research and Literate Programming  
+* Version Control  
+* Principles of tidy data 
+* Intro to working with dates in R 
+
+<!-- Mini lessons "Intro to R and RStudio" and "Intro to Reproducible Research and Literate Programming" and "Version Control with Github" would all come before diving into the project itself, but after outlining goals for the lesson. Phase 1 could begin with a quick presentation of overall goals -->
+
+# Setup Your Project 
+We saw in the intro that the best way to keep your analysis, data, and other documents and materials organized in RStudio is with the "Projects" feature. Each analysis or (fittingly) project that you work on should have its own Project. Projects in RStudio are very simple and straightforward to use, and we will walk through setting one up to use for the remainder of this course.
+
+<!-- Or should I have this done already in the Intro? Not sure it really matters -->
+
+# Find data (if necessary), and import it
+
+It's very important to note the interconnectedness between the first four goals listed above. In a formal setting, the analyst may be given a question to answer, then be tasked with collecting the data, or both may be given at the same time. In our informal, educational setting, we will begin with the data in hand, inspect it, then find an appropriate question. Before you do anything in R, you will create your new project.
+
+Its worth mentioning that there are many interesting datasets freely available today. Excellent places to find datasets for your own exploration include the following:  
+[Kaggle](https://www.kaggle.com/datasets)  
+[HealthData.gov](https://www.healthdata.gov/search/type/dataset)  
+[Data.gov](https://catalog.data.gov/dataset)  
+[WorldBank](https://data.worldbank.org/)  
+[The US Census Bureau](https://www.census.gov/data.html)  
+[Amazon Web Services Public Datasets](https://aws.amazon.com/datasets/?_encoding=UTF8&jiveRedirect=1)  
+
+These are just a few that are worth browsing, both for datasets and ideas. I've also had a lot of luck simply using google if I have something specific I'm looking for. 
+
+For this course, I found a very large dataset scraped from Kickstarter.com at https://webrobots.io/kickstarter-datasets/. The data provides information on individual Kickstarter projects. I chose this dataset in hopes that it might provide an interesting look into crowdfunding, a hot trend among small businesses and hopeful startups. Whether or not we actually crack the "code" of Kickstarter is not the point, as our goal is to learn the process of data analysis. The entire dataset contains over 169,000 entries going back to 2009. I took a sample of the dataset to make the size more manageable as we simply didn't need (or want) that large of a dataset for our purposes. We will learn how to take a sample of a dataset soon.  
+
+If you haven't done so already, you can download the dataset here: 
+<!-- Or better yet, simply fork it from the git repository  -->
+
+In order to import the data, we will need to load a package to do so. The function we will be using is a part of the `readr` package. We can load it individually, or we can load the `tidyverse` package which contains the `readr` package and many other important packages. You will use the group of packages in `tidyverse` in essentially every R session for the rest of this course.
+
+Remember from the Introduction to R and Rstudio lesson that before you load a package for the first time, you must install it with `install.packages()`. In this case, run `install.packages("tidyverse")` in the console or elsewhere if you never have before.
+
+Load the `tidyverse` package:
+```{r load tidyverse package}
+library(tidyverse)
+```
+
+
+<!-- Walk through read_csv -->
+To import the dataset, we will use the `read_csv()` function from `readr`, and we will store it in an object called `ks`.
+
+The only argument we need here is the name of the csv file, with extension and closed in double quotes.
+```{r import dataset}
+ks <- read_csv("kickstarter_data.csv")
+```
+
+# Initial Inspection of the Data
+
+Now that we have imported our dataset, we will inspect it. When we inspect our dataset, we are simply trying to acquaint ourselves with it so that we know what we are working with, if it has any major problems, and whether or not it might be able to help us answer our question. Datasets are oftentimes too big to actually look at the whole thing, so we will focus on looking at the structure of the data, summaries of some of the data, and bite-sized pieces of the data. This is a very surface level look at the data. We are not yet trying to really begin to answer our question or gain insight from our data. I liken it to the "What's your name? Where are you from?" type of questions we ask when we first meet a stranger. We aren't leading off with a question about their deepest desires and motivations. 
+
+For the first pass of inspection of the dataset, my main goal is simply to get an idea of what questions it will be most suited to answer. At this point in the process, we should not be changing or modifying our original data in any way.
+
+A few common tasks typically included in the preliminary inspection of a dataset:  
+
+* The number of observations
+* The number of variables
+* Number of distinct observations
+* The names of the variables
+* A summary of the data
+* How much data we are missing
+* The first few observations
+* The last few observations
+
+<!-- Wait doesnt this come later???? -->
+<!-- We will also begin to identify and deal with potential problems with the data and do some necessary formatting. Formatting tasks will include handling dates, converting character strings to factors if necessary, and possibly removing variables that we know we won't need. We will also be sure that our dataset adheres to the principles of tidy data. -->
+
+Let's dive into inspection of the data.
+How many observations do we have?
+```{r number of observations}
+nrow(ks)
+
+```
+How many variables are there?
+```{r number of variables}
+ncol(ks)
+
+```
+
+And an easier way to find both the number of observations and the number of variables:
+```{r dimensions}
+dim(ks)
+```
+Checking distinct observations (checking for duplicates):
+```{r distinct observations}
+n_distinct(ks)
+
+```
+
+What variables do we have?
+```{r names of the variables}
+names(ks)
+```
+
+And a summary of the data by variable:  
+
+```{r summary}
+summary(ks)
+
+```
+Note that `summary()` provides some information on NA's. However, I find the information regarding NA's in this table to be insconsistent, and I use another method of finding them that I will show in just a minute.
+
+Also, note that the dates don't look much like dates. We'll deal with those when we begin to clean things up.
+
+And a similar way to summarise the data that may be more useful in some situations:
+```{r structure of the data}
+str(ks)
+```
+
+`str()` shows the dimensions of the data at the top. Then, for each variable, it gives us the class and the first few observations. Because our data is still somewhat raw and messy, it can be a little hard to read. 
+
+And here is the better way to find NA's in our data, as promised earlier:
+
+```{r finding NAs}
+colSums(is.na(ks))
+
+```
+
+The four columns towards the end are nearly all NA. We can get rid of them. We will do that in just a little while when we begin cleaning up the dataset. We have two other NAs in location. Having two NAs out of 500 observations likely does not limit the usefulness of the data, but we may have to account for it at some point. For now just keep in mind that they are there.
+
+And to wrap up our initial inspection, we want to look at some of the actual data. Because 500 observations is a little cumbersome, we can look at just the first few observations as well as the last few. We will use `head()` and `tail()`. I will also show a way to open the dataset in its entirety in another window.
+
+```{r the first and last few observations}
+head(ks)
+tail(ks)
+```
+And to open the entire dataset in another window:
+```{r View dataset, eval=FALSE}
+View(ks)
+```
+
+# Ask a Question
+Now that we have a very rough idea of what our dataset contains, we need to decide on a question that the rest of our analysis will focus on answering.
+
+There are two basic types of question that this type of analysis is particularly useful for answering: inferential and predictive. Predictive is the most useful for business applications, and that is what we will focus on in this course. We will spend enough time discussing ways to deal with the question if it were inferential that you will be prepared to tackle an inferential question as well. # Could move this to discussion of specific criteria 4 below
+
+## General criteria of a good question:
+1. Must be answerable with the available data or data than can be obtained
+2. Must be useful or of interest
+3. Must be grounded in logic
+4. Must be sufficiently sharp to provide useful insight
+
+## Specific criteria for this analysis:
+1. The answer (if found) may provide insight into factors that lead to successful funding on Kickstarter
+2. Can be answered with the current dataset
+3. Allows for exploration of the similarities and differences between Inferential and Predictive questions. The question should fall into one of the categories, but could be varied slightly to fall into the other for learning purposes
+4. Provides the opportunity to apply the Process of Data Science
+
+The question I propose is this:
+
+```
+How can we predict success on Kickstarter?
+```
+
+<!-- Fill these in with a quick analysis/run through of why these criteria are met -->
+
+### Applying the general criteria to our question:
+
+**1. Must be answerable with the available data or data than can be obtained**  
+    The dataset we have is as relvant as it gets and gives us a decent chance at being able to answer the question.  
+**2. Must be useful or of interest**  
+    As worded, the answer to our question could be useful either for people considering putting their project on Kickstarter and also for people considering funding projects.   
+**3. Must be grounded in logic**  
+    The logic behind the question is that there may be some link between some of those variables and success. I think that is sound.  
+**4. Must be sufficiently sharp to provide useful insight**  
+    My definition of sharp is that you will know when you have accomplished your task. If we are able to put together a model using the available data that predicts success on Kickstarter that meets some level of statistical significance, then we will have accomplished our task.  
+
+### Applying the specific criteria for this analysis to our question:
+
+**1. The answer (if found) may provide insight into factors that lead to successful funding on Kickstarter**  
+Yes, we will have the opportunity to build a model that will hopefully predict success.  
+**2. Can be answered with the current dataset**  
+Yes, see above.  
+**3. Allows for exploration of the similarities and differences between Inferential and Predictive questions. The question should fall into one of the categories, but could be varied slightly to fall into the other for learning purposes**  
+**4. Provides the opportunity to apply the Process of Data Science**  
+    
+# Tidy the data, and any other necessary formatting
+
+Data rarely come to us in an ideal format. There are almost always some formatting issues that we will have to deal with. 
+
+Working with tidy data makes every subsequent step of the analysis much simpler and more straightforward. Every bit of time spent at this stage is an investment that will pay dividend throughout the rest of the analysis.
+
+However, this can be one of the most challenging parts of any data anaylsis. We know what we want the data to look like at the end, but the ways it can differ from what we want are endless. In other words, tidy, clean data fits a nice, tight script, but there are no limits to how dirty a dataset may be. <!-- fix that wording... --> 
+
+Fortunately, we have a set of principles to define what a clean or tidy dataset looks like, and we have many excellent tools to help us get there. In this section of the course, we will learn the principles of tidy data and how to use the primary tools for tidying data. We will also use several other tools to address the specific issues that need to be addressed in our dataset.
+
+The caveat here is that no course could possibly teach how to overcome every possible obstacle a dataset may face. However, with the underlying principles of tidy data guiding us, we can rely on our accumulated and always growing experience, our creativity, and a little research to get through those problems. 
+
+## Topics covered in this section
+* Principles of tidy data
+* Converting and parsing dates
+* Encoding factors and an intro to important data types  
+<!-- Wait when do I do that last one? -->
+
+## Tidy Data, and meet Hadley Wickham
+As with so many things in modern data analysis using R, we have Dr. Hadley Wickham to thank for providing both structure and tools for dealing with messy data. Hadley holds many titles, including Adjunct Professor of Statistics at the University of Auckland, Stanford University, and Rice University, Chief Data Scientist for RStudio, and is the author of many books about R programming. He has a genius for reducing common problems and difficulties to their basic principles and developing tools to help us implement those principles in our analyses.
+
+His contributions include the following (these are just a few of the most popular and important; there are many more):  
+
+* ggplot2 for graphing and visualizing data  
+* dplyr for transforming data  
+* ggvis for interactive visualizations of data  
+* readr for importing and exporting data  
+* and the subject of this section: tidyr for tidying data  
+
+We will go over many of these and more throughout the rest of this course.
+
+I could go on about the impact that Hadley has had on the world of R programming and data analysis in general, but instead I will refer you this article, which does a great job of deomonstrating his impact: [Hadley Wickham, the Man Who Revolutionized R](https://priceonomics.com/hadley-wickham-the-man-who-revolutionized-r/)
+
+I also highly recommend any of his books, two of which are available online for free: 
+
+* [R for Data Science: Import, Tidy, Transform, Visualize, and Model Data](http://r4ds.had.co.nz/)
+* [Advanced R](http://adv-r.had.co.nz/)
+
+All of his books can be purchased from Amazon and make great additions to any data analyst's library:
+
+* [ggplot2: Elegant Graphics for Data Analysis](https://www.amazon.com/ggplot2-Elegant-Graphics-Data-Analysis/dp/331924275X/ref=as_li_ss_tl?ie=UTF8&qid=1518551437&sr=8-1&keywords=ggplot&linkCode=ll1&tag=jaycreighton-20&linkId=ddf3a29b7f2a08e66cb2ed8cd9d102a5)
+* [Hands-On Programming with R: Write Your Own Functions and Simulations ](https://www.amazon.com/Hands-Programming-Write-Functions-Simulations/dp/1449359019/ref=as_li_ss_tl?_encoding=UTF8&pd_rd_i=1449359019&pd_rd_r=FB5MENM8TTVMCTGQQ3HN&pd_rd_w=c3K0H&pd_rd_wg=xys2E&psc=1&refRID=FB5MENM8TTVMCTGQQ3HN&linkCode=ll1&tag=jaycreighton-20&linkId=711b99d45fcb277d8fdcea044f61dfa4)
+* [R Packages: Organize, Test, Document, and Share Your Code](https://www.amazon.com/Packages-Organize-Test-Document-Share/dp/1491910593/ref=as_li_ss_tl?ie=UTF8&qid=1518551528&sr=8-1&keywords=r+packages+wickham&linkCode=ll1&tag=jaycreighton-20&linkId=cdd21eb92453652a033f047445fe2369)
+* [R for Data Science: Import, Tidy, Transform, Visualize, and Model Data](https://www.amazon.com/Data-Science-Transform-Visualize-Model/dp/1491910399/ref=as_li_ss_tl?s=books&ie=UTF8&qid=1518551559&sr=1-2&keywords=r+for+data+science+hadley+wickham&linkCode=ll1&tag=jaycreighton-20&linkId=133441a126c4a9346c47c7ccc328ec61)
+* [Advanced R](https://www.amazon.com/Advanced-Chapman-Hall-Hadley-Wickham/dp/1466586966/ref=as_li_ss_tl?_encoding=UTF8&pd_rd_i=1466586966&pd_rd_r=C1C394EFNS710CVDFPZ6&pd_rd_w=6QyJR&pd_rd_wg=8VtUp&psc=1&refRID=C1C394EFNS710CVDFPZ6&linkCode=ll1&tag=jaycreighton-20&linkId=3549d5d55049b3704b47ac6d4feb56c7)
+
+<!-- Could move all of the books to a further reading section at the end of the lesson -->
+
+Now onto his principles of **tidy data**. 
+
+As mentioned earlier, data rarely comes to us in the exact format that we need. We could call such data raw, messy, or even un-tidy. And we must take measures to organize, clean, or tidy it. But what exactly do we want the data to look like when we're done with it? Dr. Wickham put together a set of guidelines or principles of tidy data. I think it's worth noting that the definition given here refers to tidy data in a somewhat strict sense. Data can meet all of these criteria and still need some formatting. We will first discuss this strict definition of tidy data, then move on to other formatting tasks, all of which can fall under a more general definition of tidying data. 
+
+<!-- Should look up udemy's protocol for references and bibliographies in markdown -->
+
+From Hadley's book, R for Data Science: 
+
+> There are three interrelated rules which make a dataset tidy [@Wickham2017, ch. 12]: 
+ 1. Each variable must have its own column.
+ 2. Each observation must have its own row.
+ 3. Each value must have its own cell.  
+
+Let's compare our dataset to these criteria to see if we have any work to do on it. We can look at the top of our data by using the `head()` function or we can open the whole thing in a separate window with the `View()` function like we did earlier.
+
+Let's start with the head().
+```{r head}
+head(ks)
+```
+
+You can get quite a bit of information from the head table here. However, when getting a feel for the whole dataset, I find it useful to open the whole document. If the dataset is especially large, using the `View()` can be a little cumbersome. In our case, however, it's just fine.
+```{r View}
+# View(ks)
+```
+
+Remember those three rules we are looking for. We can walk through each of those, asking ourselves if our data meet the criteria.
+
+**First, does each variable have its own column?** Looking at the data, none of the variables are combinations of data that would need to be separated. Additionally, none of the columns are single variables spread across multiple columns. Check that one off the list.
+
+**Second, does each observation have its own row?** Since each row of data refers to one case, yes, each observation has its own row.
+
+**Third, does each value have it's own cell?** If we have addressed the first two principles concerning rows and columns, then each cell must be its own value. Looking at our dataset confirms this.
+
+So our dataset is tidy, but not all data that you come across will be. While all tidy datasets fit a common format, untidy data can be untidy in literally an infinite number of ways. Because there is an endless number of problems you may have to fix in tidying a dataset, it is necessarily out of the scope of this class. Fortunately, there are many great tools for tidying data (with the tidyr package at the top of the list). These tools are simple and intuitive, especially once you have a little experience working with them. Tidying data requires a lot of free form thinking and creative problem solving, and it only gets easier with time and experience. Early on, I encourage you to find datasets that are pretty close to tidy, and work your way up to more challenging datasets.
+
+<!-- Adapt the above paragraph to learning the 4 main functions  -->
+
+<!-- I havent introduced the pipe or enclosing the whole statement in parentheses to both assign and print. Of course I could just introduce the parentheses thing in the intro. And maybe the pipe????? Or introduce the pipe later...-->
+
+```{r tidying functions: gather}
+set.seed(97)
+
+(untidy_df2 <- data.frame(make = LETTERS[1:5], v6 = sample(100:200, 5), v8 = sample(200:350, 5)))
+
+(tidy_df2 <- untidy_df2 %>% 
+    gather(v6, v8, key = "cylinders", value = "hp" ))
+
+# This might work just to explain the concept and the function
+```
+
+```{r tidying function: spread}
+
+# Do this one first (before gather)
+
+(untidy_df1 <- data.frame(id = c(101, 101, 102, 102, 103, 103, 104, 104, 105, 105), measure = c("hp", "mpg"), number = c(111, 27, 149, 30, 114, 19, 223, 10, 136, 12)))
+
+(tidy_df1 <- untidy_df1 %>% 
+    spread(key = measure, value = number))
+
+# I THINK THIS ONE IS DONE!!!!
+
+```
+
+```{r separating and uniting dates}
+# a toy df
+(dates_df <- data.frame(id = 101:110, date = as.Date(sample(13000:15000, 10), origin = '1970-01-01', tz = 'GMT')))
+
+(dates_df_sep <- dates_df %>% 
+    separate(date, into = c("year", "month", "day"), sep = "-"))
+# sep argument is optional, as the default is to separate on any non-alphanumeric character
+
+# Now let's put it back together!
+(together_again <- dates_df_sep %>% 
+    unite(date, year, month, day))
+
+# We can choose the separator 
+(together_again2 <- dates_df_sep %>% 
+    unite(date, year, month, day, sep = "-"))
+```
+
+
+
+
+
+As you come accross issues with datasets that you encounter, here are the best resources to use:
+
+[tidyr vignette](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html)  
+[Package documentation for 'tidyr'](https://cran.r-project.org/web/packages/tidyr/tidyr.pdf)  
+[Hadley Wickham's paper on tidy data in the Journal of Statistical Software](http://vita.had.co.nz/papers/tidy-data.pdf)  
+[R for Data Science, Chapter 12: Tidy Data](http://r4ds.had.co.nz/tidy-data.html)  
+
+## Other formatting and tidying of the data
+So we have ensured that our data is tidy in the strict sense, but still have plenty of other formatting to do. 
+
+Although it may come earlier in other analyses, this will be the first time that we will change our modify our data. To be sure that we never lose any data or unintentionally change our data, be sure that you only modify the copy data that we have imported into an R object (ours is called `ks`). We will leave our raw data exactly as it is and do all of our work on a copy of it. Furthermore, we will document and re-run each step of the process at the beginning of every session, so that we know our analysis is reproducible. This is accomplished by simply working down the page, adding each step to the bottom of this document in the order that we do it. If we are diligent in doing so, each time we open and run this document in a new session, we should get the same result.
+
+## Dates
+We noticed earlier that our date variables didnt look much like dates.  
+
+Let's quickly take another look at the date variables to refresh our memory as to what we are dealing with. 
+
+```{r looking again at dates}
+head(ks)
+```
+
+Dates can come to you in many formats. They make look like 5/27/2005, 27/5/2005, 4-30-17, 1.16.87, or even 537813061. The first four are simply stylistic differences, but the last one is a format known as Unix time.
+
+The "Date" or `as.Date` class in R is simply the number of days since January 1, 1970. There are also two Date-Time classes in R (which are similar to the "Date" class, but also include time information), "POSIXlt" and "POSIXct". "POSIXct" is the number of seconds since the beginning of ...
+
+<!-- I should make sure this explanation is complete and leads logically to converting our dates. Also check the following paragraph to be sure that it flows naturally with the additions -->
+
+The date variables include `deadline`, `state_changed_at`, `created_at`, and `launched_at`. It appears that value of these variables is a 10 digit number rather than a date. That very large number represents the number of seconds since January 1, 1970. This format is known as Unix time. In order to convert them to a reasonable format, we will use the r function `as.POSIXct()`. We can use the `$` operator to call a specific variable from the `ks` dataset: `ks$created_at` in the first example. We will also need to use the `as.numeric()` function since the original function requires a numeric object. Be sure the parentheses for the `as.numeric()` function enclose only the variable we are calling. We will replace the old values with the new ones using the assignment operator, `<-`, assigning the new values in place of the old ones. 
+
+```{r converting dates}
+ks$created_at <- as.POSIXct(as.numeric(ks$created_at), origin = '1970-01-01', tz = 'GMT')
+
+```
+
+
+There's a lot going on here, so let's go back through each part to be sure its all clear as can be...
+
+Let's check our work
+```{r checking first date conversion}
+head(ks)
+```
+
+Note the difference both in how the dates look, but also the class listed right below variable name.
+
+Let's do the rest of them:
+```{r converting the rest of the dates}
+ks$deadline <- as.POSIXct(as.numeric(ks$deadline), origin = '1970-01-01', tz = 'GMT')
+
+ks$state_changed_at <- as.POSIXct(as.numeric(ks$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+
+ks$launched_at <- as.POSIXct(as.numeric(ks$launched_at), origin = '1970-01-01', tz = 'GMT')
+
+```
+
+```{r checking the rest of the dates}
+head(ks)
+```
+They're all good!
+
+<!-- Note that this is the first time we've modified the dataset, so here is where I will need to do an intro to using a codebook -->
+
+Another useful tool for working with dates is the lubridate package. It's most useful when dates already look like dates (but may not yet act like dates). There are a very simple set of functions for parsing (putting into a usable format). All you have to do is choose the function that corresponds to the correct order of month, day and year. It does not matter how they are separated.
+
+Here's an example:
+
+```{r experimenting with lubridate}
+library(lubridate)
+
+mdy("05/01/2008")
+dmy("21.01.2013")
+ymd("1989-06-23")
+
+```
+
+You can find more information on the lubridate package at [Dates and Times Made Easy with lubridate](https://www.jstatsoft.org/article/view/v040i03).
+
+<!-- ## Removing Empty Columns -->
+
+<!-- I think I should move this to phase 2. It doesn't flow at all to put just one dplyr verb here -->
+
+<!-- We noticed during our inspection that a few of the columns contained no values whatsoever. Let's remove those. -->
+
+<!-- The procedure for removing some variables will require the use of a couple of extremely important tools: the pipe and the dplyr package. We will rely on these for the rest of the course, and we will become very familiar and comfortable with them. The syntax pattern we use here will be a recurring theme throughout the course.  -->
+
+<!-- The dplyr package is a set of tools for transforming data, and it is another key member of the tidyverse by Hadley Wickham. There are six core functions used to tackle many common data transformation tasks. These are known as the "verbs" of data tranformation:   -->
+
+<!-- * `filter()` -->
+<!-- * `arrange()` -->
+<!-- * `select()` -->
+<!-- * `mutate()` -->
+<!-- * `summarise()` -->
+<!-- * `group_by()` -->
+
+<!-- To remove the unnecessary variables, we will use the `select()` function. We will use the rest of them in the next phase, Explortatory Data Analysis, and we will go much more in-depth on the package as a whole and each of the verbs.  -->
+
+<!-- In order to remove the columns, we need to select all of the columns that we want to keep, and replace the original variable with only those variables/columns. -->
+
+<!-- The syntax for the `select()` function is as follows:  -->
+
+<!-- ```{r remove empty columns} -->
+<!-- ks <- dplyr::select(ks, -c(photo, friends, is_starred, is_backing, permissions)) -->
+<!-- ``` -->
+
+
+<!-- So similarly to how I figured out the bibliography stuff the other day, I want to go ahead and figure out some important details before I go any further. I think this will speed things up overall so that I don't have to come back and add it.
+
+Topics will include:
+github
+structure (2 projects, short lessons)
+tidy tools
+-->
+
+
+# References

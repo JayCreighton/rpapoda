@@ -1,0 +1,14 @@
+---
+title: "phase1"
+output: html_document
+---
+
+This is phase 1
+
+I'm going to create a variable
+
+```{r}
+var1 <- 3 * 3
+```
+
+The value of var1 is `var1 `

@@ -1,0 +1,924 @@
+---
+title: 'rpapoda Phase 2: Exploratory Data Analysis'
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/apa.csl
+output:
+  html_document:
+    df_print: paged
+bibliography: bib.bib
+---
+
+```{r sourcing the codebook}
+library(knitr)
+source(purl("rpapoda_codebook_phase_2.Rmd"))
+```
+
+```{r converting dates, include=FALSE}
+# Converting dates, which was done in Phase 1, and is the full codebook, but not my_codebook
+ks$created_at <- as.POSIXct(as.numeric(ks$created_at), origin = '1970-01-01', tz = 'GMT')
+
+
+ks$deadline <- as.POSIXct(as.numeric(ks$deadline), origin = '1970-01-01', tz = 'GMT')
+
+ks$state_changed_at <- as.POSIXct(as.numeric(ks$state_changed_at), origin = '1970-01-01', tz = 'GMT')
+
+ks$launched_at <- as.POSIXct(as.numeric(ks$launched_at), origin = '1970-01-01', tz = 'GMT')
+
+```
+
+# Exploratory Data Analysis  
+
+This is one of the phases of data analysis that gets the most press (along with machine learning, AI, etc. that are talked about so much these days). Some of the more tangible evidence of your work will come from this phase in the form of the beautiful graphs that R is known for as well as useful tables. 
+
+During Exploratory Data Analysis, frequently referred to as EDA, we will explore various aspects of the variables in our dataset and the relationships among them, with the goals of gaining an understanding of our data, spotting any problems with the data, and generating ideas to test in the modeling phase. Much of our exploration is open ended and free-form; creative thinking is encouraged. If one graph raises a question, try to come up with a way to answer it, perhaps another graph.
+
+# Goals 
+There is a lot to cover in this phase, and therefore we will have several different levels of goals. I've organized them into "Goals", "Tasks", and "Steps". 
+
+## Primary Goals of this Phase of Our Analysis
+* Gain an understanding of, familiarity with, and insight into our dataset  
+* Find (and deal with) any problems with our data  
+* Generate ideas to use and test in the modeling phase  
+* (Further) refine our question, where appropriate  
+
+## Primary Tasks of this Phase
+* Build plots or graphs  
+* Build useful tables  
+* Transform our data as necessary  
+
+Transforming our data may include formatting variables, creating new variables based on calculations from other variables, or otherwise making our data more useful.
+
+## Models or "Grammars" Learned in this Phase
+* The Grammar of Graphics, developed by Leland Wilkinson  
+* The Grammar of Data Manipulation, developed by Hadley Wickham  
+
+Corresponding to each of those "grammars", we will become very familiar with two of the primary packages or tools of the `tidyverse`: `ggplot2` for graphics, and `dplyr` for data manipulation and transformation.
+
+I mentioned earlier that this phase involves a lot of free-form thinking. While this is one of the most important aspects of this phase, and also one of the most fun, it is important to have some sort of roadmap to keep us focused and our analysis moving forward. For this purpose I really love the model layed out by Stephen Few in his book [Signal: Understanding What Matters in a World of Noise](https://www.amazon.com/Signal-Understanding-Matters-World-Noise/dp/1938377052/ref=as_li_ss_tl?s=books&ie=UTF8&qid=1525375375&sr=1-1&keywords=signal+stephen+few&linkCode=ll1&tag=jaycreighton-20&linkId=7a1fa5a2bdec16aae2d0625b4a22ed3b). I've pared it down a little to suit our purposes, and it provides a simple set of types of exploration to work through that will very nicely allow us to accomplish all of our goals for this phase.
+
+## Steps of EDA, or Types of Graphs to Explore
+> 1. Variation within categories  
+ 2. Variation within measures  
+ 3. Variation through time  
+ 4. Relationships among measures  
+ 5. Relationships among categories [@Few2015]  
+
+To drill down a little further, we here's a preview of the following basic types of graphs that we will learn how to build:  
+<!-- Make sure this is accurate at the end of the phase -->
+
+### Types of Graphs  
+* Scatterplots  
+* Bar Graphs  
+* Line Graphs  
+* Box Plots  
+* Dot Plots?  
+* Histograms  
+* Frequency Polygons  
+
+We will do much more than build simple graphs, however. We will make many adjustments,  additions, and modifications to them in order to gain the insight that we need. 
+
+### Additional Layers and Tools for Building Graphs
+* Plot and axis titles  
+* Axis limits for "zooming"  
+* Smoothers to reveal trend  
+* Position adjustments  
+* Shape and color adjustments  
+* Facet wraps and grids  
+
+Just a quick note about our approach during this phase regarding the appearance of our graphics: during EDA we will focus on making the graphs as informative as possible, but we won't yet spend much time making them "pretty". During the Communication Phase, Phase 4, we will learn many tools to customize the appearance of our graphs to suit our presentation needs. 
+
+Along with relying on free-form thinking and creativity, EDA is very iterative phase. You might have a guess about what a graph will tell you, then it might show you something different when you create it. In this case, you might have to investigate a little further. As data analysts, iteration is a very frequent part of our job. After doing it for years, I found that I became much better at the process when I thought through it and formalized the steps. One final model that I will introduce before we get started is the model I use before and after each graph or table I make (or really for any other step in the analysis). I will demonstrate it on a few graphs, but I won't spell it out each time. Now that I know the steps, I follow them implicity rather than explicitly. I want you to learn the process, go through the steps a few times until you have a good feel for it, then adapt or modify it to your own needs if you see fit, then apply your own process intuitively and informally in your own analysis. We want as many of the tools as possible to become second nature, and iteration is one of the most important of those for good data analysis.
+
+## Iteration Cycle  
+1. Set a goal for the task ahead and define expectations and criteria for success  
+2. Attempt to complete the goal or perform the task  
+3. Compare your results to your expectations or your criteria for success  
+4. If necessary, use judgment and experience to decide whether you think the expectations   should be altered, or the task should be repeated under different parameters  
+5. Make adjustments, and repeat as necessary  
+
+Clearly there is a lot to get to during this phase and sets of lessons. Don't worry about the volume of information as the models we will learn help organize and give meaning to it all, as well as making it simple and intuitive to use. I'll put the primary goals, tasks, and steps onto flashcards, as knowing them will help keep us focused and moving forward with our analysis.
+
+# An Introduction to ggplot2
+
+With all of that out of the way, let's learn how to create graphics. The graphics package we will use is ggplot2, another of the many great packages in the tidyverse and developed by Hadley Wickham. It is based on the "Grammar of Graphics" (that's what the "gg" in ggplot2 stands for) developed by Leland Wilkinson. At its most basic level, the grammar describes "the deep features that underlie all statistical graphics" [@Wickham2016]. Dr. Wickham furthered Wilkinson's ideas to become the "Layered Grammar of Graphics", which, as the name implies, defines the role of each layer in a plot and the components that comprise it. This is done to facilitate our communication with R. The layered grammar is how we communicate with R and ggplot2 to build graphics. 
+
+In other words, every statistical graphic contains a certain set of features. The grammar outlines the categories of those features. Using the package to build graphics is simply a matter of telling the package what to do for each feature in a way that the software understands.
+
+So let's start with those features common to every statistical graph, the components of the Grammar of Graphics. 
+
+> ## The layered grammar defines a plot as the combination of:  
+1. A default dataset and set of mappings from variables to aesthetics  
+2. One or more layers, each composed of a geometric object, a statistical transformation, a position adjustment, and optionally, a dataset and aesthetic mappings  
+3. One scale for each aesthetic mapping  
+4. A coordinate system  
+5. The facetting specification [@Wickham2010]  
+
+Note that the layer, as defined above, has several components. Layers create the objects we actually see on the graph. 
+
+## The Components of a Layer  
+> * Data and aesthetic mapping
+* A statistical transformation (stat)
+* A geometric object (geom)
+* A position adjustment [@Wickham2010]
+
+Every plot we make in ggplot will have each of these components. Fortunately, however, we are able to rely on defaults for some of the information, so we don't have to input all off those every time.
+
+Let's look at a simple plot identify those components.
+
+```{r our first plot}
+ggplot(ks, aes(x = goal, y = pledged)) + 
+    geom_point()
+```
+
+Let's first look at the code that creates this plot. This plot demonstrates just about the bare minimum required to make a ggplot graph. Qe must include a call to the `ggplot()` function, a call to the `aes()` function, usually as an argument to `ggplot()`, and a geom function. Also note the `+` sign following the `ggplot()` function; this is required between each function we add.
+
+So let's go back through this and compare to the components of the Grammar of Graphics, including the components of layers, and see how things shape up.
+
+A refresher:
+
+> ## The layered grammar defines a plot as the combination of:  
+1. A default dataset and set of mappings from variables to aesthetics  
+2. One or more layers, each composed of a geometric object, a statistical transformation, a position adjustment, and optionally, a dataset and aesthetic mappings  
+3. One scale for each aesthetic mapping  
+4. A coordinate system  
+5. The facetting specification [@Wickham2010]  
+
+## The Components of a Layer  
+> * Data and aesthetic mapping  
+* A statistical transformation (stat)  
+* A geometric object (geom)  
+* A position adjustment [@Wickham2010]  
+
+Looking at that bit of code, we can identify a few of those components. The first argument to the `ggplot()` function is "ks". That is our dataset, and that satisfies the first part of the first component of the grammar. Right after the `ks` argument, we have a function called `aes()`. This is short for "aesthetics", which refer to the way that data is "mapped" to the plot. We'll go into how aesthetics work in just a bit, but notice that within the `aes()` function we have specified the variables we want on our x and y axes. So the whole first part of the grammar has been taken care of: data and mapping of variables. 
+
+The first component is pretty straightforward; it's all right there in the first line of our code. The second is a little less straightforward, so let's walk through it. A "layer" is essentially what you actually see on the graph. In our example above, the points are the most tangible part of the layer, and we call the points the "geometric object", or "geom' for short. As you might have guessed, we tell ggplot to make those points with the `geom_point()` function. Notice that right now it has no arguments. 
+
+But there's a lot more on the lists, and we've run out of code! Where are the statistical transformations, position adjustments, scales, coordinate systems, and facetting specifications? Fortunately, ggplot is designed with simplicity in mind, and we are able to rely on defaults for much of the information. Let's take a peak at what the code for the same plot would look like without relying on defaults.
+
+```{r same plot with no defaults}
+ggplot(ks, aes(x = goal, y = pledged)) + 
+    geom_point(data = ks, aes(x = goal, y = pledged), stat = "identity", position = "identity") + 
+    scale_x_continuous() + 
+    scale_y_continuous() + 
+    coord_cartesian() + 
+    facet_null()
+```
+
+Notice that I produced the exact same plot with a lot more code. Obviously this is not how we want to make our plots if we can avoid it, as it's not particularly efficient, but there are a few things you can learn from seeing it all spelled out this way. 
+
+Again, all the extra code I added into the second graph simply spelled out what was already going to happen by default. In other words, when we type the shorter, first set of code, the second set of code is what is actually executed behind the scenes. While we will never have to type that exact set of code, everything we do to add to or change the above plot will be overriding one of those commands.
+
+Let's quickly walk through the second set of code just so we can see how we are accomplishing everything that is required by the Grammar of Graphics, and so that we have an idea of what everything means.
+
+Let's work through the additions in the order they appear in the code. The first additions are the first two arguments in the `geom_point()`: `data = ks` and `aes(x = goal, y = pledged)`. The thing to notice here is that they duplicate the first two arguments we passed to the `ggplot()` function. When we pass data and aesthetic mapping arguments to the `ggplot()` function, those become the default for the whole plot. Later on we will add additional geoms, lines or bars or smooths, for example, and they will all use the data and mappings that we specify in the `ggplot()` function. That is, of course, unless we override the default by specifying something different in the function for any one of those geoms. If we want geoms that use different data or variables, we just have to include those arguments in the function for any geoms that don't use the default.
+
+Moving on to the next arguments in `geom_point()`, we have `stat = "identity"` and `position = "identity"`. These arguments represent the default statistical transformation and position adjustment for the object `geom_point()`. In this particular case, the argument "identity" essentially means "do nothing". In other words, no statistical transformation was performed, and we didn't adjust the position. Instead, the points were just displayed according to their "identity". We will learn how to override these defaults to perform statistical transformations and position adjustments later. Going back to comparing the second set of code to our list of components above, we have now satisfied everything required for a layer: 
+
+## The Components of a Layer  
+* Data and aesthetic mapping: `data = ks, aes(x = goal, y = pledged)`  
+* Statistical transformation: `stat = "identity"`  
+* Geometric object: `geom_point()`  
+* Position adjustment: `position = "identity"`  
+[@Wickham2010]  
+
+Moving forward in the code, we get to the scale functions. `scale_x_continuous()` and `scale_y_continuous()` tell ggplot to use a continuous scale on both axes, which is the default. Other options for scales include log and square root transformations, among others.
+
+Next comes the coordinate function. The default coordinate system used is the Cartesian system which determines location by position relative to the x and y axes and is represented by the function `coord_cartesian()`. We can do many things with the coordinate system functions, including zooming in and out, flipping the axes, fixing the aspect ratio, or changing to non-linear coordinate systems such as Polar coordinates. We will work with the coordinate systems later. 
+
+The last function in the code for our plot is `facet_null()`. Facetting is a system for subsetting the data and creating multiple plots on a single page based on those subsetting. There is tremendous power in facetting and we will explore it later on. Much like `stat = "identity"` tells ggplot to not perform any statistical tranformations (the default), `facet_null()` also tells ggplot to perform the default, which is no facetting. 
+
+Now that we have run through all of the code, let's look at the components of the Grammar of Graphics and see if we have satisfied all of the requirements.
+
+## The layered grammar defines a plot as the combination of:  
+1. A default dataset and set of mappings from variables to aesthetics: `ggplot(ks, aes(x = goal, y = pledged))`  
+2. One or more layers, each composed of a geometric object, a statistical transformation, a position adjustment, and optionally, a dataset and aesthetic mappings: `geom_point(data = ks, aes(x = goal, y = pledged), stat = "identity", position = "identity")`  
+3. One scale for each aesthetic mapping: `scale_x_continuous()` and `scale_y_continuous()`  
+4. A coordinate system: `coord_cartesian()`  
+5. The facetting specification: `facet_null()`  
+[@Wickham2010]  
+
+At the beginning of the Phase 2: EDA, I laid out a list of types of graphics we would create. 
+
+### Types of Graphs  
+* Scatterplots  
+* Bar Graphs  
+* Line Graphs  
+* Box Plots  
+* Dot Plots?  
+* Histograms  
+* Frequency Polygons  
+
+In our example above, we created a scatterplot. That was determined by the type of geometric object, or "geom", we used: `geom_point()`. Each of the other types of graphs also have corresponding geoms. As long as the specified data works for that type of geom, switching from one type of plot to another can be as simple as changing the geom. Although it might be difficult to read with this particular set of data, we could create a dotplot graph just by changing `geom_point()` to `geom_dotplot()`. 
+
+```{r a simple dotplot}
+ggplot(ks, aes(x = goal, y = pledged)) + 
+    geom_dotplot() # Note that this is the only I thing I changed 
+```
+
+For the most part, the geom we choose is the primary part of the code responsible for determining the type of chart we are creating. 
+
+Here are the geoms associated with the types of charts listed above. We will create each of these before too long.
+
+### Types of Graphs  
+* Scatterplots: `geom_point()`  
+* Bar Graphs: `geom_bar()`  
+* Line Graphs: `geom_line()`  
+* Box Plots: `geom_boxplot()`  
+* Dot Plots: `geom_dotplot()`  
+* Histograms: `geom_histogram()`  
+* Frequency Polygons: `geom_freqpoly()`  
+
+Further customization of the chart comes primarily in two forms: adding additional geoms or overriding the defaults. Looking back at the list of additional layers and tools presented during the section on goals of this phase, we can see that all of them are either additional objects or overriding the defaults. Note that some geoms have different defaults associated with them than the ones we saw above with `geom_point()`. Can you guess which category each of the following might fall into, or how we might accomplish some of them? As promised at the beginning of the phase, we will learn how to do each of these and become very comfortable with each of them.  
+
+### Additional Layers and Tools for Building Graphs
+* Plot and axis titles  
+* Axis limits for "zooming"  
+* Smoothers to reveal trend  
+* Position adjustments  
+* Shape and color adjustments  
+* Facet wraps and grids  
+
+## Some practice with ggplot2 
+
+Before we move any further along, I want to create a few graphs to help us get comfortable with ggplot. Because we don't yet have all of the tools to dive into the specific steps required for our analysis, we will use some data that is included with the ggplot2 package. 
+The dataset we will look at is called `diamonds`. It comes preloaded in the ggplot2 package (which loads when we load the tidyverse package at the beginning of each session). Get a feel for the dataset by viewing the head of the data. Note that you can search the help for information on these preloaded datasets to get more in depth information.
+
+It's already available, so we'll just put it into a data frame of the same name. Notice that when we do, it shows up in the environment pane on the top right.
+
+```{r creating diamonds dataframe}
+diamonds <- diamonds
+```
+
+
+```{r inspecting diamonds}
+dim(diamonds)
+head(diamonds)
+?diamonds
+```
+
+Looks like we have 10 variables with nearly 54000 observations. In the head table we can look through the variables and get a feel for what we have available to us.
+
+I won't walk through all of the steps of inspecting data that we did in Phase 1, but I strongly encourage you to hit pause and take a minute to do so.
+
+As we talked about above, each of the components of the Grammar of Graphics is required, but the defaults can take care of much of that for us. Therefore we can strip the requirements down just a bit. 
+
+### The bare minimum required for any plot: 
+1. Data  
+2. Aesthetic Mappings (from variables to properties on our graph)  
+3. A Geom  
+
+More specifically, we must include a call to the `ggplot()` function, a call to the `aes()` function, usually as an argument to `ggplot()`, and a geom function. Don't forget to separate all functions with a `+` sign.
+
+Let's make a few graphs. I'm going to run through a handful of graphs to illustrate a few things about how ggplot works and to begin to get you comfortable making them. I'm going to start with a very simple graph using just the bare minimum above, then I'm going to add a little complexity to it. Don't worry about memorizing every specific or understanding how everything works, just try to get a feel for the possibilities and the overall process.
+
+```{r histogram of depth}
+ggplot(diamonds, aes(x = depth)) + 
+    geom_histogram()
+# Just the bare minimum: data, mapping, and a geom
+```
+
+You'll see that error about the number of bins used anytime you use the default number of bins. The default is 30, but we can override that.
+
+```{r overriding bins with binwidth}
+ggplot(diamonds, aes(depth)) + 
+    geom_histogram(binwidth = 2)
+```
+
+Sometimes it is more appropriate to change the number of bins than the binwidth.
+
+```{r changing number of bins}
+ggplot(diamonds, aes(depth)) + 
+    geom_histogram(bins = 20)
+```
+
+Let's see an example of overriding a default like we talked about earlier. We'll zoom by adding/changing an argument in the coordinate system.
+
+```{r zooming}
+ggplot(diamonds, aes(depth)) + 
+    geom_histogram(bins = 20) + 
+    coord_cartesian(xlim = c(55, 72), ylim = c(0, 25000))
+```
+
+Notice that in the first histogram, I put `aes(x = depth)`, but in the next few I just put `aes(depth)`. The first two arguments expected by the `aes()` function are x and y, in that order (Run `args(aes)` or `?args` to check that). Remember that if we put arguments in the order the function expects them, we do not need to label them. If things are simple, feel free to omit the label, but if it helps keep things organized, feel free to label them, especially as things get more complicated.
+
+We could change the look of that by changing to the frequency polygon geom.
+
+```{r freq poly of depth}
+ggplot(diamonds, aes(depth)) + 
+    geom_freqpoly()
+
+```
+
+Now we could really make use of the frequency polygon by breaking that up by cut.
+
+```{r freq poly of depth by cut}
+ggplot(diamonds, aes(depth, by = cut)) + 
+    geom_freqpoly()
+```
+
+To make it more readable, let's make each line (which represents a cut) a different color. 
+
+```{r}
+ggplot(diamonds, aes(depth, color = cut)) + 
+    geom_freqpoly()
+```
+Notice that it adds a nice legend for us. Let's zoom in a little to make it easier to see the detail.
+
+```{r zooming in on the freqpoly}
+ggplot(diamonds, aes(depth, color = cut)) + 
+    geom_freqpoly() + 
+    coord_cartesian(xlim = c(55, 70))
+```
+
+While we're here let's look at one more quick way to look at distributions, the boxplot. Notice the order of the variables.
+
+```{r boxplot of depth}
+ggplot(diamonds, aes(cut, depth)) + 
+    geom_boxplot()
+```
+
+
+So far we've explored distributions by looking at histograms, frequency polygons, and boxplots. We've modified the bins and zoomed by modifying the coordinate system. We've broken things down by the cut variable.
+
+Let's switch things up just a little and look at the relationship between two variables. A scatterplot is a great way to begin there. It seems logical that there might be a relationship between carat and price, so let's start there.
+
+```{r scatterplot of carat and price}
+ggplot(diamonds, aes(x = carat, y = price)) + 
+    geom_point()
+```
+I wonder how cut plays into the relationship. Let's see if we can find a way to display it as well. This is called mapping by a variable. Notice that the new argument is inside the `aes()` function. Everything that happens inside the `aes()` function is mapping variables to aesthetics. 
+
+```{r scatterplot of carat and price, by cut}
+ggplot(diamonds, aes(carat, price, color = cut)) + 
+    geom_point()
+```
+
+Hard to tell much in the middle, but the concentration red or orange on the bottom right indicates that "Fair" cut diamonds go for a lower price. Same thing for "Ideal" cuts on the high end.
+
+I think it will be hard to see enough detail to get any information from it, but let's try adding another variable. I wonder how clarity affects the relationship?
+
+```{r scatterplot of carat and price, by cut and clarity}
+ggplot(diamonds, aes(x = carat, y = price, color = cut, shape = clarity)) + 
+    geom_point()
+```
+Again, it's hard to tell much from this particular chart at this point, but you can see how each point now has a shape that relates to its clarity rating. The warning message makes this point as well. But you can see here the option we have to map the shape of the points by a discrete or factor variable.
+
+But what about continuous variables? We can map them as well. Let's take a look at depth's effect on the relationship.
+
+One way is to map the size of each point to the continuous variable.
+
+```{r carat and price, by depth (size)}
+ggplot(diamonds, aes(carat, price, size = depth)) + 
+    geom_point()
+```
+Once again, it is very difficult to see due to the fact that we are looking at over 50,000 points, but the higher the depth, the larger the point. 
+
+Another way to map depth is one we used for discrete or factor variables: color.
+
+```{r carat and price by depth (color)}
+ggplot(diamonds, aes(carat, price, color = depth)) + 
+    geom_point()
+```
+
+Notice that it uses a scale from blue to black to indicate the depth score.
+
+Let's take a quick look at layers and information that we can add. It looks to me like there is a positive correlation between carat and price. We can easily add a smooth to illustrate that trend. I thought the plot where we mapped cut to color was the most informative so far, so we'll use that one.
+
+```{r carat and price with multiple smooths}
+ggplot(diamonds, aes(carat, price, color = cut)) + 
+    geom_point() + 
+    geom_smooth()
+```
+
+Notice that it made a different smooth for each cut. If you remember from earlier, any data or aesthetics we specify in the `ggplot()` function call become the default for the whole plot. We can override that by doing the same thing within the function call for the geom. Because we don't want color to be the default for the smooth, we will specify it in the point geom.
+
+```{r carat and price with smooth}
+ggplot(diamonds, aes(carat, price)) + 
+    geom_point(aes(color = cut)) + 
+    geom_smooth()
+```
+We will use many other layers and additions to graphs during the rest of the lesson, but here's one more that I find particularly useful: a line that represents the median of one of the variables.
+
+```{r carat and price with median line}
+ggplot(diamonds, aes(carat, price, color = cut)) + 
+    geom_point() + 
+    geom_vline(aes(xintercept = median(carat)))
+```
+Interesting that it is so far to the left. The data must be highly concentrated on the low end of carat, which is difficult to tell from this graph. If we were doing an in-depth of the diamonds dataset, we could create another graph or two to explore the variable, perhaps beginning with a histogram of carat.
+
+One last topic I want to cover on our quick tour of ggplot: chart titles and axis labels. I mentioned earlier that we are more concerned at this stage about making our plots informative rather than pretty (we'll take care of pretty later), but I find that a well labeled chart can be more informative. Here's a simple example of each:
+
+```{r carat and price}
+ggplot(diamonds, aes(carat, price, color = cut)) + 
+    geom_point() + 
+    ggtitle("Relationship Between Carat and Price", subtitle = "by Cut") + 
+    xlab("Weight (in Carats") + 
+    ylab("Price (in US Dollars") + 
+    labs(color = "Quality of Cut") # The legend title
+```
+
+We covered a lot during our quick tour of ggplot2. Throughout the rest of this phase, we will look at many more geoms and ways to customize the chart and transform the data so that it conveys the information that we need. We will go into much more depth on each of these features, and I assure you that you will be very comfortable with the primary tools of the ggplot package. Right now, you may not be able to create every chart that you can conceive, but I encourage you to explore a little bit and see what you can come up with. 
+
+In addition to the diamonds dataset, ggplot and the base R package called "datasets" have many built in datasets that you can experiment with. Some of the more popular ones include "mpg", "iris", and "economics". You can find more by running the command `data()` in the console (no arguments needed). Remember that you can get more information about any of these preloaded datasets by running `?name_of_dataset` in the console.
+
+Spend some time and play around. Experiment a little. Not every graph will turn out exactly how you intended it, but see if you can tweak your code to make it do what you want. Regardless of how skilled you are, there is always trial and error in your R programming, especially during EDA.
+
+Now that we know a little about `ggplot2` and the "Grammar of Graphics", in the next lesson we will learn about `dplyr` and the "Grammar of Data Manipulation". We will use it for most changes we make to our dataset, from permanent additions like calculating a new variable, to quickly looking only at the largest values for a single variable. 
+
+# dplyr, and the Grammar of Data Transformation
+
+In addition to making graphs, we will spend a lot of time during EDA working with the data itself. It goes without saying that we will be exploring the data throughout this phase, but we will do that in quite a few ways. We might break the data into parts and look at summaries of each, or we might zoom in on certain subsets of the data, or we might create new variables that will help with our analysis. 
+
+In order to do such manipulations and transformations, we will use yet another of Hadley Wickham's excellent tools: dplyr. dplyr provides us with a set of very simple, intuitive tools to handle most of the transformation tasks we will run into. There are six primary functions in the package. When used in conjunction with each other, the options for transforming your data are endless. These six functions make up the core of the "Grammar of Data Transformation".
+
+## The Grammar of Data Tranformation  
+* filter() allows us to look at a subset of our data by filtering out what we don't need  
+* arrange() sorts data in ascending or descending order of whatever criteria we choose  
+* select() displays only the columns or variables that we ask for   
+* mutate() creates new columns  
+* summarise() gives us whatever summary statistics we ask of it  
+* group_by() makes each of the above functions more useful by breaking the data into groups of our choosing  
+[@Wickham2017]
+
+Each of these are both very powerful and simple to use. They all use similar syntax and are designed to mesh well when used together. Note that the "grammar" is full of verbs. R is a "functional" language and relies more on verbs than nouns. 
+
+Each of these functions have a similar structure. The first argument is always the dataframe the function will be applied to, and the rest of the arguments are the conditions by which we apply it.
+```{r arguments of dplyr verbs}
+args(filter)
+args(arrange)
+args(select)
+args(mutate)
+args(summarise)
+args(group_by)
+```
+
+Let's do a few quick examples. We can go back to the diamonds dataset.
+
+```{r exploring the diamonds dataset with dplyr}
+diamonds <- diamonds
+colnames(diamonds)
+
+# Pull up only the Ideal cut diamonds
+filter(diamonds, cut == "Ideal")
+```
+
+```{r arrange diamonds by price}
+arrange(diamonds, price)
+
+arrange(diamonds, desc(price))
+```
+
+```{r selecting columns}
+select(diamonds, carat, cut, price)
+```
+
+```{r adding a column with mutate}
+mutate(diamonds, price_per_carat = price / carat)
+```
+
+Seems simple enough, right? We'll go into more detail into these soon. But the real power of these functions comes from linking them together, but to do so in an efficient way, we need to learn one very important tool. Let's quickly look at a way to link them together with only the tools we have learned so far. And then we'll learn a much better way to do things and never used this one again!
+
+```{r the inefficient way to link together dplyr verbs}
+diamonds2 <- mutate(diamonds, price_per_carat = price / carat)
+diamonds3 <- arrange(diamonds2, desc(price_per_carat))
+select(diamonds3, carat, cut, price, price_per_carat)
+
+# Now forget you ever saw that!
+rm(diamonds2, diamonds3)
+```
+
+See the extra, intermediate variables? We can do away with those and make things much simpler and easier to follow and write. We do so with the pipe `%>%`.
+
+The pipe takes what is on its left and passes to the right. It can be read as "then" when reading your code. What comes from the left becomes and completely replaces the first argument of the function on the right. Since output of all the dplyr verbs is a data frame, and the first argument of each is also a data frame, the pipe works especially well with dplyr. We are effectively passing a data frame to one of the functions, transforming it, then (potentially) passing it to another for further transformation.
+
+Here are a few examples of piping, which also illustrate the power of chaining the dplyr verbs. Remember to read the pipe as "then", and notice how you are able to always read left to right and down the page, as we normally read. 
+
+```{r chaining dplyr functions with the pipe}
+diamonds %>% 
+    group_by(cut) %>% 
+    summarise(mean(price))
+     
+diamonds %>% 
+    filter(carat >= 1) %>% 
+    group_by(color) %>% 
+    summarise(mean_depth = mean(depth)) %>% 
+    arrange(desc(mean_depth))
+
+```
+You are limited only by your imagination in the way you chain the dplyr functions. A couple quick notes about the pipe: the keyboard shortcut for it is ctrl/cmd + shift + m, and you must load the tidyverse package for the pipe to work, or else the magrittr package if for some reason you weren't loading the tidyverse.
+
+If this is your first introduction to the pipe, the syntax may seem a little unusual, but you'll get used to it very quickly. Once you've used it for a while it will feel much more natural than doing without. For that reason, I'm going to use the pipe whenever we use the dplyr verbs, even if we only need a single verb, or when other good opportunities to use it present themselves. Use it whenever you practice and it will be second nature in no time.
+
+## A Look At Each of The Primary dplyr Verbs
+I'll run through each of the verbs, giving any considerations we must keep in mind when we use it and also give an example or two.
+
+### filter()
+The filter() function allows us to filter out rows. We use the normal set of comparison and logical operators to tell R which rows to filter out. The comparison operators include the following:
+
+#### Comparison Operators
+* `>` (greater than)  
+* `<` (less than)  
+* `>=` (greater than or equal to)  
+* `<=` (less than or equal to)  
+* `!=` (not equal)  
+* `==` (equal)
+
+#### Logical Operators  
+* `&` (and)  
+* `|` (or)  
+* `!` (not)  
+
+So let's look at a few examples.
+```{r filter}
+diamonds %>% 
+    filter(cut == "Ideal")
+
+diamonds %>% 
+    filter(cut == "Ideal", color == "E")
+
+# Same as above
+diamonds %>% 
+    filter(cut == "Ideal" & color == "E")
+
+diamonds %>% 
+    filter(price >= 15000)
+
+diamonds %>% 
+    filter(carat <= 1)
+
+diamonds %>% 
+    filter(carat > 2, price < 6000)
+
+diamonds %>% 
+    filter(carat > 3 | cut == "Ideal")
+
+diamonds %>% 
+    filter(!(clarity == "I1" | color == "J"))
+
+```
+
+## arrange()
+The arrange() function allows us to reorder the data based on the ascending or descending values of one or more variables. Ascending is the default order.
+
+Here are a few examples:
+```{r examples using arrange}
+diamonds %>% 
+    arrange(price)
+
+diamonds %>% 
+    arrange(desc(price))
+
+diamonds %>% 
+    arrange(desc(cut), color, desc(clarity))
+# color is in ascending order because R does not know that the levels are in reverse alphabetical order. 
+
+```
+
+## select()
+The select() function allows us to reorder rows or display only a selection of columns. They will be displayed in the order they are referenced.
+
+```{r examples of select}
+diamonds %>% 
+    select(price, carat, cut)
+
+diamonds %>% 
+    select(price, carat, cut, everything())
+
+diamonds %>% 
+    select(-price)
+
+diamonds %>% 
+    select(carat:clarity)
+
+diamonds %>% 
+    select(price, carat:clarity)
+```
+
+Note the use of the `everything()` function, which tells dplyr to include whatever columns are left.
+
+While we're working with `select()`, let's put it to use on our project. If you remember from Phase 1 that while we were inspecting our dataset, we came across a few empty columns, or columns whose variables were all "NA". Let's re-run the check for NA's we ran in Phase 1:
+
+```{r finding NAs}
+colSums(is.na(ks))
+
+```
+
+Note the last four variables, "friends", "is_starred", "is_backing", and "permissions". Each are showing that all of their values equal "NA", so we can remove them. Even though we can undo it by reverting to our original dataset, I like to confirm things before I start deleting data.
+
+```{r confirming NAs}
+ks %>% 
+    select(friends, is_starred, is_backing, permissions)
+```
+
+Clicking through there, it looks like everything is, in fact, empty or equal to "NA". We can delete those columns.
+
+Before we run the following code, look in the environment pane at the number of variables for our dataset, "ks". It currently shows 31.
+
+```{r removing the empty columns}
+(ks <- ks %>% 
+    select(-c(friends, is_starred, is_backing, permissions)))
+```
+
+Now look at the number of variables; it has now changed to 27. Success! We can also click through the output to confirm that the empty columns are not there.
+
+Don't forget that since we just modified our dataset, we need to update our codebook. Remember that since we are using a separate codebook, we need to make all of our changes to ks in the codebook. We'll do that now.
+
+## rename()
+The rename() function is a variant of the select() function that allows us to easily rename a column/variable.
+
+```{r examples of rename}
+diamonds %>% 
+    rename(weight = carat)
+```
+
+## mutate()
+The mutate function allows us to add columns that we calculate from the existing data. Let's first trim a few columns off so that we can see the new columns without scrolling. Note that we could use the pipe to eliminate the need for a new object, but since we'll reuse it, it makes sense to make the copy.
+
+```{r a trimmed dataset}
+(diamonds_trimmed <- diamonds %>% 
+    select(price, carat, depth, table))
+# Remember that the parentheses allow us to both assign to a new object and print the results
+```
+
+And now for a few examples of what we can do with mutate():
+
+```{r examples of mutate}
+diamonds_trimmed %>% 
+    mutate(price / carat)
+
+diamonds_trimmed %>% 
+    mutate(price_per_table = price / table)
+
+diamonds_trimmed %>% 
+    mutate(log(price))
+
+```
+
+## summarise()
+The summarise() function allows us to calculate sumarry statistics on our data. At its most basic level, it looks like this:
+
+```{r examples of summarise}
+diamonds %>% 
+    summarise(mean(price))
+
+diamonds %>% 
+    summarise(Mean = mean(price), Median = median(price))
+
+diamonds %>% 
+    summarise(mean(carat), mean(price), mean(depth))
+```
+
+The real power of summarise() comes when we combine it with the last dplyr verb, group_by(). group_by() allows us to break the data into groups and then summarise or perform other tasks. Here are a few examples:
+
+```{r examples of grouped summaries}
+diamonds %>% 
+    group_by(cut) %>% 
+    summarise(mean(price))
+
+diamonds %>% 
+    group_by(cut) %>% 
+    summarise(mean(carat))
+
+diamonds %>% 
+    group_by(cut) %>% 
+    summarise(mean(carat), n())
+
+diamonds %>% 
+    group_by(cut) %>% 
+    count(cut)
+    
+
+```
+You've now seen how each of the verbs work by themselves and in conjunction with others. Remember that we can go on to link them together anyway that makes sense for our analysis. We can calculate some statistics, then arrange them highest to lowest. Or we can filter everything but Ideal cut diamonds and go from there. Or we can create a new variable and use its value for our analysis. The options are endless, and more often limited by our own creativity than anything else. As we move forward through the rest of the EDA phase, we will get lots of experience chaining dplyr verbs together and frequently building plots with the data. Before long, you will have plenty of practice using these verbs and will be very comfortable doing so.
+
+# Diving into EDA
+
+We now have the necessary tools under our belt, ggplot2 and dplyr. As we move forward, these will be the primary tools we use to explore our data. Let's take a quick look back at the goals of this phase.
+
+## Primary Goals of Exploratory Data Analysis (EDA)
+* Gain an understanding of, familiarity with, and insight into our dataset  
+* Find (and deal with) any problems with our data  
+* Generate ideas to use and test in the modeling phase  
+* (Further) refine our question, where appropriate  
+
+In order to guide us along the path towards accomplishing those goals, we will use the pared down version of the framework laid out by Stephen Few. Here it is again:
+
+## Steps of EDA, or Types of Graphs to Explore
+> 1. Variation within categories  
+ 2. Variation within measures  
+ 3. Variation through time  
+ 4. Relationships among measures  
+ 5. Relationships among categories [@Few2015]  
+ 
+As we go through each of the above steps, we will use graphs and other relevant statistics to accomplish the first goal of EDA from above (Gain an understanding of, familiarity with, and insight into our dataset). Along the way we will likely find some problems with our dataset that need to be addressed, and we will take care of those (the second goal from above). Any insight we gain from the process will give us a feel for the potential candidates to be included and tested as a part of the model we will attempt to create in the next phase, and we will continue to refine our question as we go, if its appropriate to do so. Let's dive in.  
+
+<!-- Should I include info here about the iteration cycle?  -->
+
+## Variation within categories
+To refresh our memory on our Kickstarter data, we can run some functions to inspect the data again like we did in Phase 1. I'll just do one here to start with, but feel free to reacquaint yourself with the dataset however you see fit.
+
+```{r summary of ks}
+ks %>% summary
+```
+Notice the use of the pipe?
+
+So when we are talking about variation within categories, we are talking about breaking the data up into different categories, and seeing how the values of other variables vary for each of the new groups. Looking through the summary of each variable above, we can pick out a few that might be useful for breaking our data into categories. "state" looks like it could hold information about the success of each project and would make a great group of categories. It also looks like the following variables could be useful: country, currency, location, category, spotlight, and is_starrable. What each of these variables have in common is that they are (or can be) factor variables. Factor variables are categorical data. The range of possible values is fixed; those values are known as "levels". They can be ordered or not. Let's take a look at the levels of a few of the factor variables mentioned above.
+
+```{r levels of state}
+levels(ks$state)
+```
+
+The reason we got null here is that R has the state variable is encoded as a character variable. You can scroll up to where we ran the summary function to see that (where it says `Class: character`). We simply need to tell R to interpret it as a factor. We'll use the `factor()` function from the forcats package.
+
+```{r levels of state take 2}
+library(forcats)
+
+levels(factor(ks$state))
+```
+
+The code above simply shows us what those levels would be if "state" were a factor variable. To make the change permanent, we simply need to reassign the state variable:
+
+```{r encoding state as a factor}
+ks$state <- factor(ks$state)
+```
+
+
+We can do the same for several other variables that should be treated as factors. Let's see what we find out from a few of the other variables. Checking the levels should tell us whether or not they may be good candidates to be treated as factors.
+
+```{r checking levels on other potential factor variables}
+levels(factor(ks$country))
+levels(factor(ks$category))
+levels(factor(ks$is_starrable))
+levels(factor(ks$spotlight))
+levels(factor(ks$currency))
+levels(factor(ks$location))
+levels(factor(ks$creator))
+
+```
+
+
+
+
+It printed every level for each of the variables listed as data type "character". In order to be a true categorical value, or category, there should be substantially fewer categories than there are total observations. Looking back through the output at the number of levels for each factor, all but "location" and "creator" have far fewer levels than total observations, which for our dataset is `r nrow(ks)`. 
+
+```{r number of levels for creator and location}
+n_distinct(levels(as.factor(ks$location)))
+n_distinct(levels(as.factor(ks$creator)))
+
+```
+
+Those numbers tell me that a few (very few) of our projects have the same creator, and there are quite a few that share a similar location. We could choose to leave these two as character data (especially creator), but there is some benefit to encoding them as factors despite not being true categories. We can always undo it later if we need to.
+
+<!-- If you look closely at the output containing all the levels, there are a few errors squeezed in there. The ouput `character(0)` comes directly after the category listings and then again two lines later. Looking back at our code, we can match those up with the "is_backing" and "is_starred" columns. During EDA, anytime we get an unusual error or warning like this, we want to investigate a little further.  -->
+
+<!-- Let's first run the same code again for just those two variables to more clearly see the output: -->
+
+<!-- ```{r} -->
+<!-- levels(factor(ks$is_backing))  -->
+<!-- levels(factor(ks$is_starred))  -->
+
+<!-- ``` -->
+
+<!-- If you remember back in Phase 1, we found a few variables that only contained NA's. In other words, these variables contain no data. The two throwing this error are two of those we found in Phase 1. Let's finish what we started with encoding the factors of the rest of the columns, then we will come back to these. -->
+
+
+```{r encoding the rest of the factors}
+ks$country <- factor(ks$country)
+ks$category <- factor(ks$category)
+ks$is_starrable <- factor(ks$is_starrable)
+ks$spotlight <- factor(ks$spotlight)
+ks$currency <- factor(ks$currency)
+ks$location <- factor(ks$location)
+ks$creator <- factor(ks$creator)
+
+```
+
+We can verify each of our new factor variables:
+
+```{r confirming class of new factor variables}
+is.factor(ks$state)
+is.factor(ks$category)
+is.factor(ks$is_starrable)
+is.factor(ks$spotlight)
+is.factor(ks$currency)
+is.factor(ks$location)
+is.factor(ks$creator)
+
+# Or 
+
+class(ks$state)
+class(ks$category)
+class(ks$is_starrable)
+class(ks$spotlight)
+class(ks$currency)
+class(ks$location)
+class(ks$creator)
+
+```
+
+We just changed our working dataset again, so we need to update the codebook again. Let's head over there now. Don't forget about "state", which we encoded in a separate, earlier chunk.
+
+## Exploring the "state" Variable
+
+Because the state variable contains information about whether or not each project was successful, it seems like a logical place to start exploring.
+
+```{r levels of state again}
+levels(ks$state)
+```
+
+Let's take a look at how many of our projects fall into each of the categories.
+
+```{r plot and table of projects in each level of state}
+ks %>% 
+    ggplot(aes(x = state)) + 
+    geom_bar()
+
+ks %>% 
+    group_by(state) %>% 
+    summarise(n())
+
+```
+
+
+```{r table of projects in each level of state}
+ks %>% 
+    group_by(state) %>% 
+    summarise(n())
+
+```
+
+Looking at the chart it's easy to see that most of our projects fall into either the "failed" or "successful" categories. Thinking through the meaning of these, I think the failed and successful projects are probably of the most interest to us. The projects that are still live likely don't help us much, since they don't yet have an outcome. A little research as to why Kickstarter would suspend a project reveals that there are a number of possible reasons, but most can be summed up as a violation of Kickstarter's rules or terms. Let's pull up the suspended project to see if we can tell what happened here.
+
+```{r a look at the suspended project}
+ks %>% 
+    filter(state == "suspended")
+```
+
+So we have a project called Boltivate. What I find most interesting is that the amount pledged was far above the goal at the time the project was suspended. I found Boltivate's profile on Kickstarter, which is still active at the time I'm putting this together. There is some interesting discussion in the comments section from the day they were suspended and shortly thereafter if you're interested.
+
+My initial thought had been that suspended projects could potentially be lumped in with the failed projects. With Boltivate having received pledges of over four times its goal, calling it failed doesn't seem appropriate. I think we should ignore it for our analysis.
+
+I also originally thought that cancelled projects could be included with failed projects.  I'm basing this on the assumption that projects' creators cancel a project when it becomes apparent that it will inevitably fail. Let's test this assumtion and see if it holds any water. One way we can do that is to compare the amount pledged to the goal.
+
+```{r pledged to goal of cancelled projects}
+ks %>% 
+    filter(state == "canceled") %>% 
+    mutate(pledged_to_goal = pledged / goal) %>% 
+    ggplot(aes(pledged_to_goal)) + 
+    geom_histogram()
+```
+
+Looks like most of the cancelled projects had a pledged to goal ratio of at or very near 0, meaning 0 or very few pledges. Some are higher, but none appear to have met their goal (a ratio of greater than 1). Let's look a little closer at the more succesful of those projects.
+
+```{r a closer look at some of the more successful cancelled projects}
+ks %>% 
+    mutate(pledged_to_goal = pledged / goal) %>% 
+    filter(state == "canceled", pledged_to_goal >= .5)
+
+```
+
+A few things I notice from looking at the entries above: first, the range of when they were cancelled to their respective deadlines varies from a few hours before to a couple weeks. In fact, the most successful project (88% funded) was cancelled well before its deadline. This seems to invalidate my assumption that projects were cancelled when it became inevitable that they would fail. 
+
+My personal takeaway is that we should ignore cancelled projects as well since we don't have much (or possibly any) information about why they were cancelled and don't want to make generalizations that would be inaccurate in at least some instances.
+
+<!-- So the next thing I should do is filter out the other states, right? Yes  -->
+
+So let's focus in on the successful and failed projects. We'll use the filter function.
+
+```{r filtering state for successful and failed}
+(ks <- ks %>% 
+    filter(state == "successful" | state == "failed"))
+
+```
+
+```{r plot and table by state}
+ks %>% 
+    ggplot(aes(x = state)) + 
+    geom_bar()
+
+ks %>% 
+    group_by(state) %>% 
+    summarise(n())
+
+```
+
+<!-- So what's next? We have used a temporary pledged to goal, but I should lay the foundation for its creation, then do so.  -->
+
+So we now have a categorical variable with two possible options: "failed" or "successful".
+
+Based on the question we are trying to answer, we will be building a model in the next phase which attempts to predict or explain success of Kickstarter projects. While actually building the model is the subject of Phase 3, during this phase we are essentially preparing ourselves and our data to build that model. One of our underlying goals is to be thinking of ways to answer our question. Because the variable contains information about the success or failure of each project, it becomes an obvious candidate to be our dependent variable. Being a binary variable, meaning each case falls into one of two categories, we will have the opportunity to build a logistic regression model. Logistic regression models attempt to explain the relationship between a binary dependent variable and one or more independent variables. 
+
+When the time comes, however, I will want to build another type of model: one using linear regression. Linear regression uses a continuous, rather than categorical, dependent variable. In this particular situation, this may prove important because it will have the potential to explain degrees of success rather than simply success or failure. For example, if the binary view is taken, projects that barely miss their goal are classified as just as much of a failure as projects that get no funding at all. Similarly, projects that barely meet their goal are viewed the same as projects that exceed their goal by ten fold. Each view may by useful different situations so we will be sure you are comfortable using both. 
+
+With the goal in mind of also being able to create a linear regression model, we need to begin thinking about the dependent variable to use. "state" is out because it is categorical. "pledged" is the next obvious candidate, as its value certainly demonstrates success. The problem with the "pledged" variable is that by itself it does not contain enough information to help us. For example, pledges of \$1000 would be a massive success, but for others that same \$1000 would mean massive failure. Therefore we have to consider the amount pledged relative to each project's goal.
+
+In order to do so, we will create a new variable that contains the ratio of the amount pledged to the goal for each project. We have actually already used a variable just like this when we were exploring the cancelled projects before we decided to remove them. We just didn't make it permanent at the time. 
+
+To refresh your memory, here is how to create the temporary variable: 
+```{r temporary pledged_to_goal}
+ks %>% 
+    mutate(pledged_to_goal = pledged / goal)
+```
+
+
+
+# References 

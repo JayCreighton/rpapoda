@@ -1,0 +1,52 @@
+---
+title: "rpapoda Phase 1: Setting the Stage"
+output: html_notebook
+bibliography: bib.bib
+---
+
+
+
+### For each variable:  
+* Units  
+* Levels of factor variables
+* Information about any missing data
+
+```{r variable names}
+names(ks)
+```
+
+```{r}
+head(ks)
+```
+
+
+### Variables
+<!-- I think its best to wait until the end to do this part. Too much will change between now and then -->
+
+`r colnames(ks[1])`: A unique number assigned by Kickstarter to identify each project  
+`r colnames(ks[2])`: The name of each project  
+`r colnames(ks[3])`: A short description of each project  
+`r colnames(ks[4])`: The target goal to be raised for each project. Units:  
+`r colnames(ks[5])`: The amount pledged by backers to the project. Units: 
+`r colnames(ks[6])`: The current (at the time of download) state the project is in. Levels: `r levels(ks$state)`  
+`r colnames(ks[7])`: 
+`r colnames(ks[8])`: 
+`r colnames(ks[9])`: 
+`r colnames(ks[10])`: 
+`r colnames(ks[11])`: 
+`r colnames(ks[12])`: 
+`r colnames(ks[13])`: 
+`r colnames(ks[14])`: 
+`r colnames(ks[15])`: 
+`r colnames(ks[16])`: 
+`r colnames(ks[17])`: 
+`r colnames(ks[18])`: 
+`r colnames(ks[19])`: 
+`r colnames(ks[20])`: 
+`r colnames(ks[21])`: 
+`r colnames(ks[22])`: 
+`r colnames(ks[23])`: 
+`r colnames(ks[24])`: 
+`r colnames(ks[25])`: 
+`r colnames(ks[26])`: 
+
