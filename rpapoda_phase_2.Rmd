@@ -731,6 +731,7 @@ The reason we got null here is that R has the state variable is encoded as a cha
 
 ```{r levels of state take 2}
 library(forcats)
+# I want this to take place in the codebook
 
 levels(factor(ks$state))
 ```
